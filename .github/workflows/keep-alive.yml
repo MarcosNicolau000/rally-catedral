@@ -1,0 +1,29 @@
+# =====================================================
+# GitHub Actions: Keep-Alive do Supabase (Plano Gratuito)
+# =====================================================
+# Seção 7.4: Configurar monitor externo para evitar
+# pausa automática por 7 dias de inatividade.
+# Este workflow faz um ping a cada 5 dias.
+# =====================================================
+
+name: Supabase Keep-Alive
+
+on:
+  schedule:
+    # Executa a cada 5 dias às 06:00 UTC (03:00 BRT)
+    - cron: '0 6 */5 * *'
+  workflow_dispatch: # Permite execução manual
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase
+        run: |
+          # Faz uma requisição GET simples ao endpoint REST do Supabase
+          # para manter o projeto ativo e evitar pausa por inatividade
+          curl -s -o /dev/null -w "HTTP Status: %{http_code}\n" \
+            "${{ secrets.SUPABASE_URL }}/rest/v1/" \
+            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}"
+          echo "✅ Ping enviado com sucesso ao Supabase."

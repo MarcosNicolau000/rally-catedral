@@ -194,9 +194,12 @@ create policy "missao_confronto_delete_admin" on missao_confronto
 create policy "config_select_autenticados" on configuracao_sistema
   for select using (auth.role() = 'authenticated');
 
--- Atualização apenas para admin
+-- Atualização e Inserção apenas para admin
+create policy "config_insert_admin" on configuracao_sistema
+  for insert with check (is_admin());
+
 create policy "config_update_admin" on configuracao_sistema
-  for update using (is_admin());
+  for update using (is_admin()) with check (is_admin());
 
 -- =====================================================
 -- POLICIES PÚBLICAS: Views de ranking

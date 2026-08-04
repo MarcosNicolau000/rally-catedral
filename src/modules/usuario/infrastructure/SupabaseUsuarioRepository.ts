@@ -1,0 +1,132 @@
+// =====================================================
+// Implementação: SupabaseUsuarioRepository
+// =====================================================
+// Implementação concreta do UsuarioRepository usando Supabase.
+// =====================================================
+
+import { SupabaseClient } from '@supabase/supabase-js';
+import { UsuarioRepository } from '../domain/repositories/UsuarioRepository';
+import { Usuario, CriarUsuarioDTO } from '../domain/entities/Usuario';
+
+export class SupabaseUsuarioRepository implements UsuarioRepository {
+  constructor(private readonly supabase: SupabaseClient) {}
+
+  async obterUsuarioLogado(): Promise<Usuario | null> {
+    const { data: { user }, error: authError } = await this.supabase.auth.getUser();
+
+    if (authError || !user) return null;
+
+    const { data: perfil, error: perfilError } = await this.supabase
+      .from('usuario_perfil')
+      .select('*')
+      .eq('id', user.id)
+      .single();
+
+    if (perfilError || !perfil) return null;
+
+    return {
+      id: perfil.id,
+      papel: perfil.papel,
+      tribo_id: perfil.tribo_id,
+      email: user.email,
+      criado_em: perfil.criado_em,
+    };
+  }
+
+  async buscarPorId(id: string): Promise<Usuario | null> {
+    const { data: perfil, error } = await this.supabase
+      .from('usuario_perfil')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error || !perfil) return null;
+
+    return {
+      id: perfil.id,
+      papel: perfil.papel,
+      tribo_id: perfil.tribo_id,
+      criado_em: perfil.criado_em,
+    };
+  }
+
+  async listarTodos(): Promise<Usuario[]> {
+    const { data: perfis, error } = await this.supabase
+      .from('usuario_perfil')
+      .select('*')
+      .order('criado_em', { ascending: false });
+
+    if (error) throw error;
+
+    return perfis.map((p) => ({
+      id: p.id,
+      papel: p.papel,
+      tribo_id: p.tribo_id,
+      criado_em: p.criado_em,
+    }));
+  }
+
+  async criar(dados: CriarUsuarioDTO): Promise<Usuario> {
+    // 1. Criar usuário no Supabase Auth usando o admin api ou signup
+    const { data: authData, error: authError } = await this.supabase.auth.signUp({
+      email: dados.email,
+      password: dados.senha,
+    });
+
+    if (authError || !authData.user) {
+      throw new Error(authError?.message || 'Falha ao registrar autenticação.');
+    }
+
+    const userId = authData.user.id;
+
+    // 2. Inserir perfil na tabela usuario_perfil
+    const { data: perfil, error: perfilError } = await this.supabase
+      .from('usuario_perfil')
+      .insert({
+        id: userId,
+        papel: dados.papel,
+        tribo_id: dados.tribo_id || null,
+      })
+      .select()
+      .single();
+
+    if (perfilError) {
+      throw perfilError;
+    }
+
+    return {
+      id: perfil.id,
+      papel: perfil.papel,
+      tribo_id: perfil.tribo_id,
+      email: dados.email,
+      criado_em: perfil.criado_em,
+    };
+  }
+
+  async vincularATribo(usuarioId: string, triboId: string): Promise<Usuario> {
+    const { data: perfil, error } = await this.supabase
+      .from('usuario_perfil')
+      .update({ tribo_id: triboId })
+      .eq('id', usuarioId)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return {
+      id: perfil.id,
+      papel: perfil.papel,
+      tribo_id: perfil.tribo_id,
+      criado_em: perfil.criado_em,
+    };
+  }
+
+  async remover(id: string): Promise<void> {
+    const { error } = await this.supabase
+      .from('usuario_perfil')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+  }
+}
