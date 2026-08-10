@@ -21,7 +21,7 @@ export interface DadosSnapshot {
 export interface SnapshotPontuacao {
   id: string;
   dados: DadosSnapshot;
-  criado_por: string;
+  criado_por: string | null;
   criado_em: string;
 }
 

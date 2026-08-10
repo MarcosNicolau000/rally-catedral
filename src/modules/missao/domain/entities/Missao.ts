@@ -19,8 +19,8 @@ export interface Missao {
   pontos_base: number;
   // Flag indicando se a missão está ativa para novos lançamentos
   ativa: boolean;
-  // ID do usuário admin que criou a missão
-  criado_por: string;
+  // ID do usuário admin que criou a missão (null se o usuário foi removido depois)
+  criado_por: string | null;
   // Data de criação
   criado_em: string;
 }

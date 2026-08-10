@@ -19,7 +19,7 @@ export interface Confronto {
   pontos_bonus: number | null;
   vencedor_id: string | null;
   finalizado: boolean;
-  criado_por: string;
+  criado_por: string | null;
   criado_em: string;
   // IDs de missões exclusivas (se tipo === 'missoes_exclusivas')
   missoes_exclusivas_ids?: string[];

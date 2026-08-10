@@ -32,6 +32,7 @@ import { ListarTribosUseCase } from '@/modules/tribo/application/use-cases/Lista
 import { ObterUsuarioLogadoUseCase } from '@/modules/usuario/application/use-cases/ObterUsuarioLogadoUseCase';
 import { CriarUsuarioUseCase } from '@/modules/usuario/application/use-cases/CriarUsuarioUseCase';
 import { VincularLiderATriboUseCase } from '@/modules/usuario/application/use-cases/VincularLiderATriboUseCase';
+import { RemoverUsuarioUseCase } from '@/modules/usuario/application/use-cases/RemoverUsuarioUseCase';
 
 // Use Cases — Missão
 import { CriarMissaoUseCase } from '@/modules/missao/application/use-cases/CriarMissaoUseCase';
@@ -43,6 +44,7 @@ import { RegistrarLancamentoUseCase } from '@/modules/lancamento/application/use
 import { RemoverLancamentoUseCase } from '@/modules/lancamento/application/use-cases/RemoverLancamentoUseCase';
 import { ZerarPontuacoesUseCase } from '@/modules/lancamento/application/use-cases/ZerarPontuacoesUseCase';
 import { ListarLancamentosUseCase } from '@/modules/lancamento/application/use-cases/ListarLancamentosUseCase';
+import { AjustarPontuacaoManualUseCase } from '@/modules/lancamento/application/use-cases/AjustarPontuacaoManualUseCase';
 
 // Use Cases — Confronto
 import { CriarConfrontoUseCase } from '@/modules/confronto/application/use-cases/CriarConfrontoUseCase';
@@ -99,6 +101,7 @@ export function makeAppServices(supabase: SupabaseClient) {
       obterLogado: new ObterUsuarioLogadoUseCase(usuarioRepo),
       criar: new CriarUsuarioUseCase(usuarioRepo),
       vincularLider: new VincularLiderATriboUseCase(usuarioRepo),
+      remover: new RemoverUsuarioUseCase(usuarioRepo),
     },
     // Use Cases — Missão
     missao: {
@@ -112,6 +115,7 @@ export function makeAppServices(supabase: SupabaseClient) {
       remover: new RemoverLancamentoUseCase(lancamentoRepo),
       zerar: new ZerarPontuacoesUseCase(lancamentoRepo, rankingRepo, supabase),
       listar: new ListarLancamentosUseCase(lancamentoRepo),
+      ajustarManual: new AjustarPontuacaoManualUseCase(lancamentoRepo, usuarioRepo),
     },
     // Use Cases — Confronto
     confronto: {

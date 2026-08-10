@@ -1,0 +1,1050 @@
+diff --git a/src/app/admin/lancamentos/actions.ts b/src/app/admin/lancamentos/actions.ts
+index 1237d84..7642835 100644
+--- a/src/app/admin/lancamentos/actions.ts
++++ b/src/app/admin/lancamentos/actions.ts
+@@ -18,3 +18,34 @@ export async function removerLancamentoAction(id: string) {
+   revalidatePath('/admin/dashboard');
+   return { success: true };
+ }
++
++export async function ajustarPontuacaoManualAction(formData: FormData) {
++  const tribo_id = formData.get('tribo_id') as string;
++  const pontosRaw = formData.get('pontos') as string;
++  const motivo = formData.get('motivo') as string;
++
++  const supabase = await createClient();
++  const { data: { user } } = await supabase.auth.getUser();
++
++  if (!user) return { error: 'Usuário não autenticado.' };
++
++  const services = makeAppServices(supabase);
++
++  const pontos = parseInt(pontosRaw, 10);
++
++  const res = await services.lancamento.ajustarManual.execute({
++    tribo_id,
++    pontos,
++    motivo,
++    registrado_por: user.id,
++  });
++
++  if (!res.ok) {
++    return { error: res.error.message };
++  }
++
++  revalidatePath('/admin/lancamentos');
++  revalidatePath('/admin/dashboard');
++  revalidatePath('/ranking');
++  return { success: true };
++}
+diff --git a/src/app/admin/lancamentos/page.tsx b/src/app/admin/lancamentos/page.tsx
+index d0a0fa8..24aeb64 100644
+--- a/src/app/admin/lancamentos/page.tsx
++++ b/src/app/admin/lancamentos/page.tsx
+@@ -1,7 +1,7 @@
+ 'use client';
+ 
+ import { useState, useEffect } from 'react';
+-import { removerLancamentoAction } from './actions';
++import { removerLancamentoAction, ajustarPontuacaoManualAction } from './actions';
+ 
+ interface LancamentoItem {
+   id: string;
+@@ -10,9 +10,15 @@ interface LancamentoItem {
+   quantidade: number;
+   pontos_calculados: number;
+   origem: string;
++  descricao?: string | null;
+   criado_em: string;
+ }
+ 
++interface TriboItem {
++  id: string;
++  nome: string;
++}
++
+ interface AuxData {
+   tribosMap: Record<string, string>;
+   missoesMap: Record<string, string>;
+@@ -20,9 +26,17 @@ interface AuxData {
+ 
+ export default function AdminLancamentosPage() {
+   const [lancamentos, setLancamentos] = useState<LancamentoItem[]>([]);
++  const [tribos, setTribos] = useState<TriboItem[]>([]);
+   const [aux, setAux] = useState<AuxData>({ tribosMap: {}, missoesMap: {} });
+   const [carregando, setCarregando] = useState(true);
+ 
++  // Estado do formulário de ajuste manual
++  const [triboId, setTriboId] = useState('');
++  const [pontos, setPontos] = useState('');
++  const [motivo, setMotivo] = useState('');
++  const [erroAjuste, setErroAjuste] = useState<string | null>(null);
++  const [salvandoAjuste, setSalvandoAjuste] = useState(false);
++
+   async function carregarDados() {
+     setCarregando(true);
+     const [resL, resT, resM] = await Promise.all([
+@@ -34,10 +48,13 @@ export default function AdminLancamentosPage() {
+     if (resL.ok) setLancamentos(await resL.json());
+ 
+     const tribosMap: Record<string, string> = {};
++    let listaTribos: TriboItem[] = [];
+     if (resT.ok) {
+-      const dataT = await resT.json();
+-      dataT.forEach((t: any) => (tribosMap[t.id] = t.nome));
++      listaTribos = await resT.json();
++      listaTribos.forEach((t: any) => (tribosMap[t.id] = t.nome));
+     }
++    setTribos(listaTribos);
++    if (listaTribos.length > 0 && !triboId) setTriboId(listaTribos[0].id);
+ 
+     const missoesMap: Record<string, string> = {};
+     if (resM.ok) {
+@@ -61,13 +78,110 @@ export default function AdminLancamentosPage() {
+     }
+   }
+ 
++  async function handleAjustar(e: React.FormEvent) {
++    e.preventDefault();
++    setErroAjuste(null);
++
++    const pontosNum = parseInt(pontos, 10);
++    if (isNaN(pontosNum) || pontosNum === 0) {
++      setErroAjuste('Informe uma quantidade de pontos válida e diferente de zero.');
++      return;
++    }
++
++    setSalvandoAjuste(true);
++
++    const formData = new FormData();
++    formData.append('tribo_id', triboId);
++    formData.append('pontos', String(pontosNum));
++    formData.append('motivo', motivo);
++
++    const res = await ajustarPontuacaoManualAction(formData);
++
++    if (res?.error) {
++      setErroAjuste(res.error);
++    } else {
++      setPontos('');
++      setMotivo('');
++      carregarDados();
++    }
++    setSalvandoAjuste(false);
++  }
++
+   return (
+     <div>
+       <header className="page-header">
+         <h1 className="page-title">Histórico de Lançamentos</h1>
+-        <p className="page-subtitle">Consulte e efetue o soft delete de lançamentos específicos</p>
++        <p className="page-subtitle">Consulte lançamentos, faça ajustes manuais de pontuação e efetue o soft delete de registros</p>
+       </header>
+ 
++      {/* Ajuste Manual de Pontuação */}
++      <div className="glass-card" style={{ marginBottom: '2rem' }}>
++        <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem' }}>⚖️ Ajuste Manual de Pontuação</h3>
++        <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '1rem' }}>
++          Adicione ou remova pontos diretamente de uma tribo, sem vínculo com uma missão. Use valores negativos para remover pontos.
++        </p>
++
++        {erroAjuste && (
++          <div
++            style={{
++              background: 'rgba(239, 68, 68, 0.15)',
++              color: '#f87171',
++              padding: '0.6rem 1rem',
++              borderRadius: 'var(--radius-sm)',
++              marginBottom: '1rem',
++              fontSize: '0.85rem',
++            }}
++          >
++            ⚠️ {erroAjuste}
++          </div>
++        )}
++
++        <form onSubmit={handleAjustar} style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
++          <div className="form-group" style={{ minWidth: '220px', marginBottom: 0 }}>
++            <label className="form-label">Tribo</label>
++            <select
++              className="input-field"
++              value={triboId}
++              onChange={(e) => setTriboId(e.target.value)}
++              required
++            >
++              {tribos.map((t) => (
++                <option key={t.id} value={t.id} style={{ background: 'var(--bg-card-solid)' }}>
++                  {t.nome}
++                </option>
++              ))}
++            </select>
++          </div>
++
++          <div className="form-group" style={{ minWidth: '160px', marginBottom: 0 }}>
++            <label className="form-label">Pontos (+/-)</label>
++            <input
++              type="number"
++              className="input-field"
++              value={pontos}
++              onChange={(e) => setPontos(e.target.value)}
++              placeholder="Ex: 10 ou -5"
++              required
++            />
++          </div>
++
++          <div className="form-group" style={{ flex: 1, minWidth: '240px', marginBottom: 0 }}>
++            <label className="form-label">Motivo (opcional)</label>
++            <input
++              type="text"
++              className="input-field"
++              value={motivo}
++              onChange={(e) => setMotivo(e.target.value)}
++              placeholder="Ex: Penalidade por atraso"
++            />
++          </div>
++
++          <button type="submit" disabled={salvandoAjuste || !triboId} className="btn btn-primary">
++            {salvandoAjuste ? 'Salvando...' : 'Aplicar Ajuste'}
++          </button>
++        </form>
++      </div>
++
+       <div className="glass-card">
+         <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem' }}>📋 Registro Geral de Lançamentos</h3>
+ 
+@@ -98,13 +212,30 @@ export default function AdminLancamentosPage() {
+                     <td>
+                       {item.origem === 'bonus_confronto' ? (
+                         <span className="badge badge-gold">🏆 Bônus de Confronto</span>
++                      ) : item.origem === 'ajuste_manual' ? (
++                        <span>
++                          <span className="badge" style={{ background: 'rgba(168, 85, 247, 0.15)', color: '#c084fc' }}>
++                            ⚖️ Ajuste Manual
++                          </span>
++                          {item.descricao && (
++                            <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginTop: '0.25rem' }}>
++                              {item.descricao}
++                            </div>
++                          )}
++                        </span>
+                       ) : (
+                         aux.missoesMap[item.missao_id] || item.missao_id
+                       )}
+                     </td>
+                     <td>{item.quantidade}</td>
+-                    <td style={{ fontWeight: 700, color: 'var(--accent-gold)' }}>
+-                      +{item.pontos_calculados} pts
++                    <td
++                      style={{
++                        fontWeight: 700,
++                        color: item.pontos_calculados < 0 ? '#f87171' : 'var(--accent-gold)',
++                      }}
++                    >
++                      {item.pontos_calculados >= 0 ? '+' : ''}
++                      {item.pontos_calculados} pts
+                     </td>
+                     <td style={{ textAlign: 'right' }}>
+                       <button
+diff --git a/src/app/admin/tribos/page.tsx b/src/app/admin/tribos/page.tsx
+index 51d4c28..8c463bd 100644
+--- a/src/app/admin/tribos/page.tsx
++++ b/src/app/admin/tribos/page.tsx
+@@ -16,9 +16,17 @@ interface NacaoItem {
+   nome: string;
+ }
+ 
++interface UsuarioItem {
++  id: string;
++  nome: string | null;
++  papel: 'admin' | 'lider_tribo';
++  tribo_id: string | null;
++}
++
+ export default function AdminTribosPage() {
+   const [tribos, setTribos] = useState<TriboItem[]>([]);
+   const [nacoes, setNacoes] = useState<NacaoItem[]>([]);
++  const [usuarios, setUsuarios] = useState<UsuarioItem[]>([]);
+   const [nacaoId, setNacaoId] = useState('');
+   const [nome, setNome] = useState('');
+   const [erro, setErro] = useState<string | null>(null);
+@@ -27,13 +35,18 @@ export default function AdminTribosPage() {
+   const [triboParaExcluir, setTriboParaExcluir] = useState<TriboItem | null>(null);
+ 
+   async function carregarDados() {
+-    const [resT, resN] = await Promise.all([fetch('/api/tribos'), fetch('/api/nacoes')]);
++    const [resT, resN, resU] = await Promise.all([
++      fetch('/api/tribos'),
++      fetch('/api/nacoes'),
++      fetch('/api/usuarios'),
++    ]);
+     if (resT.ok) setTribos(await resT.json());
+     if (resN.ok) {
+       const dataN = await resN.json();
+       setNacoes(dataN);
+       if (dataN.length > 0 && !nacaoId) setNacaoId(dataN[0].id);
+     }
++    if (resU.ok) setUsuarios(await resU.json());
+   }
+ 
+   useEffect(() => {
+@@ -143,6 +156,7 @@ export default function AdminTribosPage() {
+               <tr>
+                 <th>Nome da Tribo</th>
+                 <th>Nação</th>
++                <th>Líder</th>
+                 <th>Criado em</th>
+                 <th style={{ textAlign: 'right' }}>Ações</th>
+               </tr>
+@@ -150,12 +164,22 @@ export default function AdminTribosPage() {
+             <tbody>
+               {tribos.map((item) => {
+                 const nacao = nacoes.find((n) => n.id === item.nacao_id);
++                const lider = usuarios.find(
++                  (u) => u.papel === 'lider_tribo' && u.tribo_id === item.id
++                );
+                 return (
+                   <tr key={item.id}>
+                     <td style={{ fontWeight: 600 }}>{item.nome}</td>
+                     <td style={{ color: 'var(--accent-gold)', fontWeight: 500 }}>
+                       {nacao?.nome || '—'}
+                     </td>
++                    <td>
++                      {lider ? (
++                        lider.nome || <span style={{ color: 'var(--text-muted)' }}>Sem nome cadastrado</span>
++                      ) : (
++                        <span style={{ color: 'var(--text-muted)' }}>Sem líder vinculado</span>
++                      )}
++                    </td>
+                     <td style={{ color: 'var(--text-muted)' }}>
+                       {new Date(item.criado_em).toLocaleDateString('pt-BR')}
+                     </td>
+@@ -175,7 +199,7 @@ export default function AdminTribosPage() {
+ 
+               {tribos.length === 0 && (
+                 <tr>
+-                  <td colSpan={4} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
++                  <td colSpan={5} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
+                     Nenhuma tribo cadastrada ainda.
+                   </td>
+                 </tr>
+diff --git a/src/app/admin/usuarios/actions.ts b/src/app/admin/usuarios/actions.ts
+index c4d91a4..dfa91a2 100644
+--- a/src/app/admin/usuarios/actions.ts
++++ b/src/app/admin/usuarios/actions.ts
+@@ -6,6 +6,7 @@ import { makeAppServices } from '@/shared/infrastructure/factories';
+ import { PapelUsuario } from '@/modules/usuario/domain/value-objects/PapelUsuario';
+ 
+ export async function criarUsuarioAction(formData: FormData) {
++  const nome = formData.get('nome') as string;
+   const email = formData.get('email') as string;
+   const senha = formData.get('senha') as string;
+   const papel = formData.get('papel') as PapelUsuario;
+@@ -15,6 +16,7 @@ export async function criarUsuarioAction(formData: FormData) {
+   const services = makeAppServices(supabase);
+ 
+   const res = await services.usuario.criar.execute({
++    nome,
+     email,
+     senha,
+     papel,
+@@ -28,3 +30,18 @@ export async function criarUsuarioAction(formData: FormData) {
+   revalidatePath('/admin/usuarios');
+   return { success: true };
+ }
++
++export async function removerUsuarioAction(id: string) {
++  const supabase = await createClient();
++  const services = makeAppServices(supabase);
++
++  const res = await services.usuario.remover.execute(id);
++
++  if (!res.ok) {
++    return { error: res.error.message };
++  }
++
++  revalidatePath('/admin/usuarios');
++  revalidatePath('/admin/tribos');
++  return { success: true };
++}
+diff --git a/src/app/admin/usuarios/page.tsx b/src/app/admin/usuarios/page.tsx
+index 0510f5a..3df5175 100644
+--- a/src/app/admin/usuarios/page.tsx
++++ b/src/app/admin/usuarios/page.tsx
+@@ -1,10 +1,12 @@
+ 'use client';
+ 
+ import { useState, useEffect } from 'react';
+-import { criarUsuarioAction } from './actions';
++import { criarUsuarioAction, removerUsuarioAction } from './actions';
++import { ConfirmDialog } from '@/presentation/components/ConfirmDialog';
+ 
+ interface UsuarioItem {
+   id: string;
++  nome: string | null;
+   papel: 'admin' | 'lider_tribo';
+   tribo_id: string | null;
+   criado_em: string;
+@@ -18,6 +20,7 @@ interface TriboItem {
+ export default function AdminUsuariosPage() {
+   const [usuarios, setUsuarios] = useState<UsuarioItem[]>([]);
+   const [tribos, setTribos] = useState<TriboItem[]>([]);
++  const [nome, setNome] = useState('');
+   const [email, setEmail] = useState('');
+   const [senha, setSenha] = useState('');
+   const [papel, setPapel] = useState<'admin' | 'lider_tribo'>('lider_tribo');
+@@ -25,6 +28,7 @@ export default function AdminUsuariosPage() {
+ 
+   const [erro, setErro] = useState<string | null>(null);
+   const [carregando, setCarregando] = useState(false);
++  const [usuarioParaExcluir, setUsuarioParaExcluir] = useState<UsuarioItem | null>(null);
+ 
+   async function carregarDados() {
+     const [resU, resT] = await Promise.all([fetch('/api/usuarios'), fetch('/api/tribos')]);
+@@ -46,6 +50,7 @@ export default function AdminUsuariosPage() {
+     setCarregando(true);
+ 
+     const formData = new FormData();
++    formData.append('nome', nome);
+     formData.append('email', email);
+     formData.append('senha', senha);
+     formData.append('papel', papel);
+@@ -56,6 +61,7 @@ export default function AdminUsuariosPage() {
+     if (res?.error) {
+       setErro(res.error);
+     } else {
++      setNome('');
+       setEmail('');
+       setSenha('');
+       carregarDados();
+@@ -63,6 +69,18 @@ export default function AdminUsuariosPage() {
+     setCarregando(false);
+   }
+ 
++  async function handleConfirmarExclusao() {
++    if (!usuarioParaExcluir) return;
++
++    const res = await removerUsuarioAction(usuarioParaExcluir.id);
++    if (res?.error) {
++      alert(res.error);
++    } else {
++      carregarDados();
++    }
++    setUsuarioParaExcluir(null);
++  }
++
+   return (
+     <div>
+       <header className="page-header">
+@@ -91,6 +109,18 @@ export default function AdminUsuariosPage() {
+ 
+         <form onSubmit={handleCriar}>
+           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
++            <div className="form-group" style={{ marginBottom: 0 }}>
++              <label className="form-label">Nome</label>
++              <input
++                type="text"
++                className="input-field"
++                value={nome}
++                onChange={(e) => setNome(e.target.value)}
++                placeholder="Nome completo"
++                required
++              />
++            </div>
++
+             <div className="form-group" style={{ marginBottom: 0 }}>
+               <label className="form-label">Email de Acesso</label>
+               <input
+@@ -165,10 +195,11 @@ export default function AdminUsuariosPage() {
+           <table className="custom-table">
+             <thead>
+               <tr>
+-                <th>ID Usuário</th>
++                <th>Nome</th>
+                 <th>Papel</th>
+                 <th>Tribo Vinculada</th>
+                 <th>Cadastrado em</th>
++                <th style={{ textAlign: 'right' }}>Ações</th>
+               </tr>
+             </thead>
+             <tbody>
+@@ -176,7 +207,12 @@ export default function AdminUsuariosPage() {
+                 const tribo = tribos.find((t) => t.id === item.tribo_id);
+                 return (
+                   <tr key={item.id}>
+-                    <td style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>{item.id}</td>
++                    <td>
++                      <div style={{ fontWeight: 600 }}>{item.nome || '—'}</div>
++                      <div style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
++                        {item.id}
++                      </div>
++                    </td>
+                     <td>
+                       <span
+                         className="badge"
+@@ -194,13 +230,23 @@ export default function AdminUsuariosPage() {
+                     <td style={{ color: 'var(--text-muted)' }}>
+                       {new Date(item.criado_em).toLocaleDateString('pt-BR')}
+                     </td>
++                    <td style={{ textAlign: 'right' }}>
++                      <button
++                        type="button"
++                        onClick={() => setUsuarioParaExcluir(item)}
++                        className="btn btn-danger"
++                        style={{ padding: '0.4rem 0.75rem', fontSize: '0.8rem' }}
++                      >
++                        🗑️ Remover
++                      </button>
++                    </td>
+                   </tr>
+                 );
+               })}
+ 
+               {usuarios.length === 0 && (
+                 <tr>
+-                  <td colSpan={4} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
++                  <td colSpan={5} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
+                     Nenhum usuário cadastrado além do administrador principal.
+                   </td>
+                 </tr>
+@@ -209,6 +255,16 @@ export default function AdminUsuariosPage() {
+           </table>
+         </div>
+       </div>
++
++      <ConfirmDialog
++        isOpen={!!usuarioParaExcluir}
++        titulo="Remover Usuário"
++        mensagem={`Tem certeza que deseja remover o acesso de "${usuarioParaExcluir?.nome || usuarioParaExcluir?.id}"? Esta ação revoga o login e não pode ser desfeita. O histórico de pontuação (missões, lançamentos etc.) criado por ele é mantido, apenas o vínculo com o autor é desfeito.`}
++        textoExigido={usuarioParaExcluir?.nome || undefined}
++        labelConfirmar="Remover Usuário"
++        onConfirm={handleConfirmarExclusao}
++        onCancel={() => setUsuarioParaExcluir(null)}
++      />
+     </div>
+   );
+ }
+diff --git a/src/modules/confronto/domain/entities/Confronto.ts b/src/modules/confronto/domain/entities/Confronto.ts
+index ebc0504..43c82e3 100644
+--- a/src/modules/confronto/domain/entities/Confronto.ts
++++ b/src/modules/confronto/domain/entities/Confronto.ts
+@@ -19,7 +19,7 @@ export interface Confronto {
+   pontos_bonus: number | null;
+   vencedor_id: string | null;
+   finalizado: boolean;
+-  criado_por: string;
++  criado_por: string | null;
+   criado_em: string;
+   // IDs de missões exclusivas (se tipo === 'missoes_exclusivas')
+   missoes_exclusivas_ids?: string[];
+diff --git a/src/modules/lancamento/application/use-cases/AjustarPontuacaoManualUseCase.ts b/src/modules/lancamento/application/use-cases/AjustarPontuacaoManualUseCase.ts
+new file mode 100644
+index 0000000..0a88522
+--- /dev/null
++++ b/src/modules/lancamento/application/use-cases/AjustarPontuacaoManualUseCase.ts
+@@ -0,0 +1,64 @@
++// =====================================================
++// Use Case: Ajustar Pontuação Manual (Admin)
++// =====================================================
++// Permite ao admin adicionar ou remover pontos de uma tribo
++// diretamente, sem vínculo com uma missão específica.
++// Gera um lançamento com origem 'ajuste_manual', associado à
++// missão de sistema criada na migration 005 (apenas para
++// satisfazer a FK missao_id, assim como já é feito para os
++// bônus de confronto).
++// =====================================================
++
++import { Lancamento, AjustarPontuacaoManualDTO } from '../../domain/entities/Lancamento';
++import { LancamentoRepository } from '../../domain/repositories/LancamentoRepository';
++import { UsuarioRepository } from '@/modules/usuario/domain/repositories/UsuarioRepository';
++import { Result, success, failure } from '@/shared/domain/types/Result';
++import { DomainError } from '@/shared/domain/errors/DomainError';
++
++// ID fixo da missão de sistema "Ajuste Manual de Pontuação" (criada na migration 005)
++const MISSAO_AJUSTE_MANUAL_SISTEMA_ID = '00000000-0000-0000-0000-000000000002';
++
++export class AjustarPontuacaoManualUseCase {
++  constructor(
++    private readonly lancamentoRepo: LancamentoRepository,
++    private readonly usuarioRepo: UsuarioRepository
++  ) {}
++
++  async execute(dados: AjustarPontuacaoManualDTO): Promise<Result<Lancamento, DomainError>> {
++    // 1. Apenas admin pode ajustar pontuação manualmente
++    const usuarioLogado = await this.usuarioRepo.obterUsuarioLogado();
++    if (!usuarioLogado) {
++      return failure(new DomainError('NAO_AUTENTICADO', 'Usuário não autenticado.'));
++    }
++
++    if (usuarioLogado.papel !== 'admin') {
++      return failure(
++        new DomainError('ACESSO_NEGADO', 'Apenas administradores podem ajustar pontuação manualmente.')
++      );
++    }
++
++    // 2. Validações
++    if (!dados.tribo_id) {
++      return failure(new DomainError('TRIBO_OBRIGATORIA', 'É necessário informar a tribo.'));
++    }
++
++    if (!Number.isInteger(dados.pontos) || dados.pontos === 0) {
++      return failure(
++        new DomainError('PONTOS_INVALIDOS', 'Informe uma quantidade de pontos inteira e diferente de zero.')
++      );
++    }
++
++    // 3. Criar lançamento de ajuste manual (positivo adiciona, negativo remove)
++    const novoLancamento = await this.lancamentoRepo.criar({
++      missao_id: MISSAO_AJUSTE_MANUAL_SISTEMA_ID,
++      tribo_id: dados.tribo_id,
++      quantidade: 1,
++      pontos_calculados: dados.pontos,
++      origem: 'ajuste_manual',
++      descricao: dados.motivo?.trim() || null,
++      registrado_por: dados.registrado_por,
++    });
++
++    return success(novoLancamento);
++  }
++}
+diff --git a/src/modules/lancamento/domain/entities/Lancamento.ts b/src/modules/lancamento/domain/entities/Lancamento.ts
+index 3dfa658..8e55673 100644
+--- a/src/modules/lancamento/domain/entities/Lancamento.ts
++++ b/src/modules/lancamento/domain/entities/Lancamento.ts
+@@ -4,7 +4,7 @@
+ // Registro de pontuação no sistema.
+ // =====================================================
+ 
+-export type OrigemLancamento = 'missao' | 'bonus_confronto';
++export type OrigemLancamento = 'missao' | 'bonus_confronto' | 'ajuste_manual';
+ 
+ export interface Lancamento {
+   // Identificador único do lançamento
+@@ -17,16 +17,18 @@ export interface Lancamento {
+   quantidade: number;
+   // Pontos calculados no momento do lançamento
+   pontos_calculados: number;
+-  // Origem ('missao' | 'bonus_confronto')
++  // Origem ('missao' | 'bonus_confronto' | 'ajuste_manual')
+   origem: OrigemLancamento;
+   // ID do confronto (se origem === 'bonus_confronto' ou missão vinculada)
+   confronto_id?: string | null;
++  // Motivo/descrição (usado em ajustes manuais de pontuação)
++  descricao?: string | null;
+   // Flag de soft delete
+   removido: boolean;
+   // ID do snapshot se foi zerado em massa
+   snapshot_id?: string | null;
+-  // ID do usuário que registrou
+-  registrado_por: string;
++  // ID do usuário que registrou (null se o usuário foi removido depois)
++  registrado_por: string | null;
+   // Data de criação
+   criado_em: string;
+ }
+@@ -41,3 +43,12 @@ export interface RegistrarLancamentoDTO {
+   confronto_id?: string;
+   registrado_por: string;
+ }
++
++export interface AjustarPontuacaoManualDTO {
++  tribo_id: string;
++  // Quantidade de pontos a adicionar (positivo) ou remover (negativo)
++  pontos: number;
++  // Motivo do ajuste, para fins de auditoria
++  motivo?: string;
++  registrado_por: string;
++}
+diff --git a/src/modules/lancamento/domain/repositories/LancamentoRepository.ts b/src/modules/lancamento/domain/repositories/LancamentoRepository.ts
+index 96ec84e..e649ef6 100644
+--- a/src/modules/lancamento/domain/repositories/LancamentoRepository.ts
++++ b/src/modules/lancamento/domain/repositories/LancamentoRepository.ts
+@@ -11,8 +11,9 @@ export interface CriarLancamentoDados {
+   tribo_id: string;
+   quantidade: number;
+   pontos_calculados: number;
+-  origem: 'missao' | 'bonus_confronto';
++  origem: 'missao' | 'bonus_confronto' | 'ajuste_manual';
+   confronto_id?: string | null;
++  descricao?: string | null;
+   registrado_por: string;
+ }
+ 
+diff --git a/src/modules/lancamento/infrastructure/SupabaseLancamentoRepository.ts b/src/modules/lancamento/infrastructure/SupabaseLancamentoRepository.ts
+index bc208a3..05b1c99 100644
+--- a/src/modules/lancamento/infrastructure/SupabaseLancamentoRepository.ts
++++ b/src/modules/lancamento/infrastructure/SupabaseLancamentoRepository.ts
+@@ -21,6 +21,7 @@ export class SupabaseLancamentoRepository implements LancamentoRepository {
+         pontos_calculados: dados.pontos_calculados,
+         origem: dados.origem,
+         confronto_id: dados.confronto_id || null,
++        descricao: dados.descricao || null,
+         removido: false,
+         registrado_por: dados.registrado_por,
+       })
+diff --git a/src/modules/missao/domain/entities/Missao.ts b/src/modules/missao/domain/entities/Missao.ts
+index 475319e..999b7af 100644
+--- a/src/modules/missao/domain/entities/Missao.ts
++++ b/src/modules/missao/domain/entities/Missao.ts
+@@ -19,8 +19,8 @@ export interface Missao {
+   pontos_base: number;
+   // Flag indicando se a missão está ativa para novos lançamentos
+   ativa: boolean;
+-  // ID do usuário admin que criou a missão
+-  criado_por: string;
++  // ID do usuário admin que criou a missão (null se o usuário foi removido depois)
++  criado_por: string | null;
+   // Data de criação
+   criado_em: string;
+ }
+diff --git a/src/modules/snapshot/domain/entities/SnapshotPontuacao.ts b/src/modules/snapshot/domain/entities/SnapshotPontuacao.ts
+index 5f798a6..369939a 100644
+--- a/src/modules/snapshot/domain/entities/SnapshotPontuacao.ts
++++ b/src/modules/snapshot/domain/entities/SnapshotPontuacao.ts
+@@ -21,7 +21,7 @@ export interface DadosSnapshot {
+ export interface SnapshotPontuacao {
+   id: string;
+   dados: DadosSnapshot;
+-  criado_por: string;
++  criado_por: string | null;
+   criado_em: string;
+ }
+ 
+diff --git a/src/modules/usuario/application/use-cases/CriarUsuarioUseCase.ts b/src/modules/usuario/application/use-cases/CriarUsuarioUseCase.ts
+index 5423687..0bdf5b5 100644
+--- a/src/modules/usuario/application/use-cases/CriarUsuarioUseCase.ts
++++ b/src/modules/usuario/application/use-cases/CriarUsuarioUseCase.ts
+@@ -14,6 +14,11 @@ export class CriarUsuarioUseCase {
+   constructor(private readonly usuarioRepo: UsuarioRepository) {}
+ 
+   async execute(dados: CriarUsuarioDTO): Promise<Result<Usuario, DomainError>> {
++    // Validando nome
++    if (!dados.nome || dados.nome.trim().length === 0) {
++      return failure(new DomainError('NOME_OBRIGATORIO', 'O nome do usuário é obrigatório.'));
++    }
++
+     // Validando email e senha
+     if (!dados.email || !dados.email.includes('@')) {
+       return failure(new DomainError('EMAIL_INVALIDO', 'Email inválido.'));
+@@ -29,7 +34,7 @@ export class CriarUsuarioUseCase {
+     }
+ 
+     try {
+-      const usuario = await this.usuarioRepo.criar(dados);
++      const usuario = await this.usuarioRepo.criar({ ...dados, nome: dados.nome.trim() });
+       return success(usuario);
+     } catch (err: any) {
+       return failure(new DomainError('ERRO_CRIAR_USUARIO', err.message || 'Erro ao criar usuário.'));
+diff --git a/src/modules/usuario/application/use-cases/RemoverUsuarioUseCase.ts b/src/modules/usuario/application/use-cases/RemoverUsuarioUseCase.ts
+new file mode 100644
+index 0000000..d9b21eb
+--- /dev/null
++++ b/src/modules/usuario/application/use-cases/RemoverUsuarioUseCase.ts
+@@ -0,0 +1,53 @@
++// =====================================================
++// Use Case: Remover Usuário (Admin)
++// =====================================================
++// Remove o acesso de um usuário (líder de tribo ou admin),
++// apagando o registro no Auth e, por cascade, seu perfil.
++// A remoção é sempre permitida, independentemente de o usuário
++// já ter criado missões/confrontos ou registrado lançamentos:
++// esses registros de histórico são preservados (a migration 006
++// troca as FKs para ON DELETE SET NULL), apenas o vínculo com o
++// autor é desfeito.
++// =====================================================
++
++import { UsuarioRepository } from '../../domain/repositories/UsuarioRepository';
++import { Result, success, failure } from '@/shared/domain/types/Result';
++import { DomainError } from '@/shared/domain/errors/DomainError';
++
++export class RemoverUsuarioUseCase {
++  constructor(private readonly usuarioRepo: UsuarioRepository) {}
++
++  async execute(usuarioAlvoId: string): Promise<Result<void, DomainError>> {
++    // 1. Apenas admin pode remover usuários
++    const usuarioLogado = await this.usuarioRepo.obterUsuarioLogado();
++    if (!usuarioLogado) {
++      return failure(new DomainError('NAO_AUTENTICADO', 'Usuário não autenticado.'));
++    }
++
++    if (usuarioLogado.papel !== 'admin') {
++      return failure(new DomainError('ACESSO_NEGADO', 'Apenas administradores podem remover usuários.'));
++    }
++
++    // 2. Não permite que o admin remova a si mesmo
++    if (usuarioLogado.id === usuarioAlvoId) {
++      return failure(
++        new DomainError('AUTO_EXCLUSAO_NEGADA', 'Você não pode remover seu próprio usuário.')
++      );
++    }
++
++    // 3. Confirma que o usuário alvo existe
++    const usuarioAlvo = await this.usuarioRepo.buscarPorId(usuarioAlvoId);
++    if (!usuarioAlvo) {
++      return failure(new DomainError('USUARIO_NAO_ENCONTRADO', 'Usuário não encontrado.'));
++    }
++
++    // 4. Remove — sempre executa, independentemente de pontuação/histórico vinculado
++    try {
++      await this.usuarioRepo.remover(usuarioAlvoId);
++      return success(undefined);
++    } catch (err: unknown) {
++      const mensagem = err instanceof Error ? err.message : String(err);
++      return failure(new DomainError('ERRO_REMOCAO', mensagem || 'Erro ao remover usuário.'));
++    }
++  }
++}
+diff --git a/src/modules/usuario/domain/entities/Usuario.ts b/src/modules/usuario/domain/entities/Usuario.ts
+index eaf3347..e9fa3d4 100644
+--- a/src/modules/usuario/domain/entities/Usuario.ts
++++ b/src/modules/usuario/domain/entities/Usuario.ts
+@@ -9,6 +9,8 @@ import { PapelUsuario } from '../value-objects/PapelUsuario';
+ export interface Usuario {
+   // ID do usuário (mesmo ID do auth.users)
+   id: string;
++  // Nome de exibição do usuário
++  nome: string | null;
+   // Papel no sistema ('admin' | 'lider_tribo')
+   papel: PapelUsuario;
+   // ID da tribo vinculada (obrigatório se papel === 'lider_tribo')
+@@ -20,6 +22,7 @@ export interface Usuario {
+ }
+ 
+ export interface CriarUsuarioDTO {
++  nome: string;
+   email: string;
+   senha: string;
+   papel: PapelUsuario;
+diff --git a/src/modules/usuario/infrastructure/SupabaseUsuarioRepository.ts b/src/modules/usuario/infrastructure/SupabaseUsuarioRepository.ts
+index 28126f5..b2b6686 100644
+--- a/src/modules/usuario/infrastructure/SupabaseUsuarioRepository.ts
++++ b/src/modules/usuario/infrastructure/SupabaseUsuarioRepository.ts
+@@ -5,6 +5,7 @@
+ // =====================================================
+ 
+ import { SupabaseClient } from '@supabase/supabase-js';
++import { createAdminClient } from '@/shared/infrastructure/supabase/admin';
+ import { UsuarioRepository } from '../domain/repositories/UsuarioRepository';
+ import { Usuario, CriarUsuarioDTO } from '../domain/entities/Usuario';
+ 
+@@ -26,6 +27,7 @@ export class SupabaseUsuarioRepository implements UsuarioRepository {
+ 
+     return {
+       id: perfil.id,
++      nome: perfil.nome,
+       papel: perfil.papel,
+       tribo_id: perfil.tribo_id,
+       email: user.email,
+@@ -44,6 +46,7 @@ export class SupabaseUsuarioRepository implements UsuarioRepository {
+ 
+     return {
+       id: perfil.id,
++      nome: perfil.nome,
+       papel: perfil.papel,
+       tribo_id: perfil.tribo_id,
+       criado_em: perfil.criado_em,
+@@ -60,6 +63,7 @@ export class SupabaseUsuarioRepository implements UsuarioRepository {
+ 
+     return perfis.map((p) => ({
+       id: p.id,
++      nome: p.nome,
+       papel: p.papel,
+       tribo_id: p.tribo_id,
+       criado_em: p.criado_em,
+@@ -84,6 +88,7 @@ export class SupabaseUsuarioRepository implements UsuarioRepository {
+       .from('usuario_perfil')
+       .insert({
+         id: userId,
++        nome: dados.nome,
+         papel: dados.papel,
+         tribo_id: dados.tribo_id || null,
+       })
+@@ -96,6 +101,7 @@ export class SupabaseUsuarioRepository implements UsuarioRepository {
+ 
+     return {
+       id: perfil.id,
++      nome: perfil.nome,
+       papel: perfil.papel,
+       tribo_id: perfil.tribo_id,
+       email: dados.email,
+@@ -115,6 +121,7 @@ export class SupabaseUsuarioRepository implements UsuarioRepository {
+ 
+     return {
+       id: perfil.id,
++      nome: perfil.nome,
+       papel: perfil.papel,
+       tribo_id: perfil.tribo_id,
+       criado_em: perfil.criado_em,
+@@ -122,10 +129,14 @@ export class SupabaseUsuarioRepository implements UsuarioRepository {
+   }
+ 
+   async remover(id: string): Promise<void> {
+-    const { error } = await this.supabase
+-      .from('usuario_perfil')
+-      .delete()
+-      .eq('id', id);
++    // Usa o client admin (service role) para remover o usuário do Auth,
++    // o que cascateia automaticamente a remoção de usuario_perfil
++    // (FK "id references auth.users(id) on delete cascade").
++    // A migration 006 troca as FKs de missao/lancamento/confronto/
++    // snapshot_pontuacao para ON DELETE SET NULL, então a remoção
++    // funciona mesmo que o usuário já tenha histórico vinculado.
++    const adminClient = createAdminClient();
++    const { error } = await adminClient.auth.admin.deleteUser(id);
+ 
+     if (error) throw error;
+   }
+diff --git a/src/shared/infrastructure/factories.ts b/src/shared/infrastructure/factories.ts
+index b0fd611..b00cad2 100644
+--- a/src/shared/infrastructure/factories.ts
++++ b/src/shared/infrastructure/factories.ts
+@@ -32,6 +32,7 @@ import { ListarTribosUseCase } from '@/modules/tribo/application/use-cases/Lista
+ import { ObterUsuarioLogadoUseCase } from '@/modules/usuario/application/use-cases/ObterUsuarioLogadoUseCase';
+ import { CriarUsuarioUseCase } from '@/modules/usuario/application/use-cases/CriarUsuarioUseCase';
+ import { VincularLiderATriboUseCase } from '@/modules/usuario/application/use-cases/VincularLiderATriboUseCase';
++import { RemoverUsuarioUseCase } from '@/modules/usuario/application/use-cases/RemoverUsuarioUseCase';
+ 
+ // Use Cases — Missão
+ import { CriarMissaoUseCase } from '@/modules/missao/application/use-cases/CriarMissaoUseCase';
+@@ -43,6 +44,7 @@ import { RegistrarLancamentoUseCase } from '@/modules/lancamento/application/use
+ import { RemoverLancamentoUseCase } from '@/modules/lancamento/application/use-cases/RemoverLancamentoUseCase';
+ import { ZerarPontuacoesUseCase } from '@/modules/lancamento/application/use-cases/ZerarPontuacoesUseCase';
+ import { ListarLancamentosUseCase } from '@/modules/lancamento/application/use-cases/ListarLancamentosUseCase';
++import { AjustarPontuacaoManualUseCase } from '@/modules/lancamento/application/use-cases/AjustarPontuacaoManualUseCase';
+ 
+ // Use Cases — Confronto
+ import { CriarConfrontoUseCase } from '@/modules/confronto/application/use-cases/CriarConfrontoUseCase';
+@@ -99,6 +101,7 @@ export function makeAppServices(supabase: SupabaseClient) {
+       obterLogado: new ObterUsuarioLogadoUseCase(usuarioRepo),
+       criar: new CriarUsuarioUseCase(usuarioRepo),
+       vincularLider: new VincularLiderATriboUseCase(usuarioRepo),
++      remover: new RemoverUsuarioUseCase(usuarioRepo),
+     },
+     // Use Cases — Missão
+     missao: {
+@@ -112,6 +115,7 @@ export function makeAppServices(supabase: SupabaseClient) {
+       remover: new RemoverLancamentoUseCase(lancamentoRepo),
+       zerar: new ZerarPontuacoesUseCase(lancamentoRepo, rankingRepo, supabase),
+       listar: new ListarLancamentosUseCase(lancamentoRepo),
++      ajustarManual: new AjustarPontuacaoManualUseCase(lancamentoRepo, usuarioRepo),
+     },
+     // Use Cases — Confronto
+     confronto: {
+diff --git a/supabase/migrations/005_nome_usuario_e_ajuste_manual.sql b/supabase/migrations/005_nome_usuario_e_ajuste_manual.sql
+new file mode 100644
+index 0000000..f7be850
+--- /dev/null
++++ b/supabase/migrations/005_nome_usuario_e_ajuste_manual.sql
+@@ -0,0 +1,46 @@
++-- =====================================================
++-- MIGRATION 005: NOME DO USUÁRIO + AJUSTE MANUAL DE PONTUAÇÃO
++-- =====================================================
++-- 1. Adiciona coluna "nome" em usuario_perfil, para exibição
++--    amigável no lugar do ID puro (líderes de tribo e admins).
++-- 2. Cria uma missão de sistema para servir de FK aos lançamentos
++--    de ajuste manual de pontuação feitos pelo admin (mesmo padrão
++--    já usado pela migration 003 para bônus de confronto).
++-- 3. Libera o valor 'ajuste_manual' no check de origem de lancamento
++--    e adiciona coluna "descricao" (motivo do ajuste).
++-- =====================================================
++
++-- =====================================================
++-- 1. Nome do usuário
++-- =====================================================
++alter table usuario_perfil add column if not exists nome text;
++
++-- =====================================================
++-- 2. Missão de sistema para ajuste manual
++-- =====================================================
++insert into missao (id, nome, descricao, tipo, pontos_base, ativa, criado_por)
++select
++  '00000000-0000-0000-0000-000000000002'::uuid,
++  'Ajuste Manual de Pontuação (Sistema)',
++  'Missão interna do sistema. Usada automaticamente para registrar ajustes manuais de pontuação feitos pelo admin. Não deve ser exibida para líderes.',
++  'booleana',
++  0,
++  false,
++  up.id
++from usuario_perfil up
++where up.papel = 'admin'
++limit 1
++on conflict (id) do nothing;
++
++-- =====================================================
++-- 3. Origem 'ajuste_manual' + motivo do ajuste
++-- =====================================================
++alter table lancamento drop constraint if exists lancamento_origem_check;
++alter table lancamento add constraint lancamento_origem_check
++  check (origem in ('missao', 'bonus_confronto', 'ajuste_manual'));
++
++alter table lancamento add column if not exists descricao text;
++
++-- Observação: pontos_calculados já não possui check de não-negatividade em
++-- 001_schema.sql, então ajustes manuais negativos (remoção de pontos) já
++-- são suportados sem alteração adicional.
+diff --git a/supabase/migrations/006_permitir_exclusao_total_usuario.sql b/supabase/migrations/006_permitir_exclusao_total_usuario.sql
+new file mode 100644
+index 0000000..de34aaa
+--- /dev/null
++++ b/supabase/migrations/006_permitir_exclusao_total_usuario.sql
+@@ -0,0 +1,61 @@
++-- =====================================================
++-- MIGRATION 006: PERMITIR EXCLUSÃO TOTAL DE USUÁRIO
++-- =====================================================
++-- Hoje, remover um usuário de usuario_perfil (via cascade da
++-- exclusão em auth.users) falha com violação de foreign key
++-- sempre que esse usuário criou missões/confrontos/snapshots
++-- ou registrou lançamentos, pois essas FKs são RESTRICT por
++-- padrão.
++--
++-- Esta migration troca essas FKs para ON DELETE SET NULL,
++-- permitindo excluir o usuário livremente. O HISTÓRICO DE
++-- PONTUAÇÃO É PRESERVADO INTEGRALMENTE (missões, lançamentos,
++-- confrontos e snapshots continuam existindo e contando
++-- normalmente) — apenas o campo que indica "quem criou/
++-- registrou" passa a ficar nulo (usuário removido).
++-- =====================================================
++
++-- ===================
++-- missao.criado_por
++-- ===================
++alter table missao alter column criado_por drop not null;
++alter table missao drop constraint if exists missao_criado_por_fkey;
++alter table missao
++  add constraint missao_criado_por_fkey
++  foreign key (criado_por) references usuario_perfil(id) on delete set null;
++
++-- ===============================
++-- snapshot_pontuacao.criado_por
++-- ===============================
++alter table snapshot_pontuacao alter column criado_por drop not null;
++alter table snapshot_pontuacao drop constraint if exists snapshot_pontuacao_criado_por_fkey;
++alter table snapshot_pontuacao
++  add constraint snapshot_pontuacao_criado_por_fkey
++  foreign key (criado_por) references usuario_perfil(id) on delete set null;
++
++-- =====================
++-- confronto.criado_por
++-- =====================
++alter table confronto alter column criado_por drop not null;
++alter table confronto drop constraint if exists confronto_criado_por_fkey;
++alter table confronto
++  add constraint confronto_criado_por_fkey
++  foreign key (criado_por) references usuario_perfil(id) on delete set null;
++
++-- ==========================
++-- lancamento.registrado_por
++-- ==========================
++alter table lancamento alter column registrado_por drop not null;
++alter table lancamento drop constraint if exists lancamento_registrado_por_fkey;
++alter table lancamento
++  add constraint lancamento_registrado_por_fkey
++  foreign key (registrado_por) references usuario_perfil(id) on delete set null;
++
++-- ==================================
++-- configuracao_sistema.atualizado_por
++-- ==================================
++-- Já era nullable, mas a FK ainda estava como RESTRICT.
++alter table configuracao_sistema drop constraint if exists configuracao_sistema_atualizado_por_fkey;
++alter table configuracao_sistema
++  add constraint configuracao_sistema_atualizado_por_fkey
++  foreign key (atualizado_por) references usuario_perfil(id) on delete set null;

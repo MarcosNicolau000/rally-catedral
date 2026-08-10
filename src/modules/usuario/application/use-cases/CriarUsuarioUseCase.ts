@@ -14,6 +14,11 @@ export class CriarUsuarioUseCase {
   constructor(private readonly usuarioRepo: UsuarioRepository) {}
 
   async execute(dados: CriarUsuarioDTO): Promise<Result<Usuario, DomainError>> {
+    // Validando nome
+    if (!dados.nome || dados.nome.trim().length === 0) {
+      return failure(new DomainError('NOME_OBRIGATORIO', 'O nome do usuário é obrigatório.'));
+    }
+
     // Validando email e senha
     if (!dados.email || !dados.email.includes('@')) {
       return failure(new DomainError('EMAIL_INVALIDO', 'Email inválido.'));
@@ -29,7 +34,7 @@ export class CriarUsuarioUseCase {
     }
 
     try {
-      const usuario = await this.usuarioRepo.criar(dados);
+      const usuario = await this.usuarioRepo.criar({ ...dados, nome: dados.nome.trim() });
       return success(usuario);
     } catch (err: any) {
       return failure(new DomainError('ERRO_CRIAR_USUARIO', err.message || 'Erro ao criar usuário.'));

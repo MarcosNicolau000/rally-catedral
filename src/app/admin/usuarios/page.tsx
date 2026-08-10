@@ -1,10 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { criarUsuarioAction } from './actions';
+import { criarUsuarioAction, removerUsuarioAction } from './actions';
+import { ConfirmDialog } from '@/presentation/components/ConfirmDialog';
 
 interface UsuarioItem {
   id: string;
+  nome: string | null;
   papel: 'admin' | 'lider_tribo';
   tribo_id: string | null;
   criado_em: string;
@@ -18,6 +20,7 @@ interface TriboItem {
 export default function AdminUsuariosPage() {
   const [usuarios, setUsuarios] = useState<UsuarioItem[]>([]);
   const [tribos, setTribos] = useState<TriboItem[]>([]);
+  const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [papel, setPapel] = useState<'admin' | 'lider_tribo'>('lider_tribo');
@@ -25,6 +28,7 @@ export default function AdminUsuariosPage() {
 
   const [erro, setErro] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(false);
+  const [usuarioParaExcluir, setUsuarioParaExcluir] = useState<UsuarioItem | null>(null);
 
   async function carregarDados() {
     const [resU, resT] = await Promise.all([fetch('/api/usuarios'), fetch('/api/tribos')]);
@@ -46,6 +50,7 @@ export default function AdminUsuariosPage() {
     setCarregando(true);
 
     const formData = new FormData();
+    formData.append('nome', nome);
     formData.append('email', email);
     formData.append('senha', senha);
     formData.append('papel', papel);
@@ -56,11 +61,24 @@ export default function AdminUsuariosPage() {
     if (res?.error) {
       setErro(res.error);
     } else {
+      setNome('');
       setEmail('');
       setSenha('');
       carregarDados();
     }
     setCarregando(false);
+  }
+
+  async function handleConfirmarExclusao() {
+    if (!usuarioParaExcluir) return;
+
+    const res = await removerUsuarioAction(usuarioParaExcluir.id);
+    if (res?.error) {
+      alert(res.error);
+    } else {
+      carregarDados();
+    }
+    setUsuarioParaExcluir(null);
   }
 
   return (
@@ -91,6 +109,18 @@ export default function AdminUsuariosPage() {
 
         <form onSubmit={handleCriar}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label">Nome</label>
+              <input
+                type="text"
+                className="input-field"
+                value={nome}
+                onChange={(e) => setNome(e.target.value)}
+                placeholder="Nome completo"
+                required
+              />
+            </div>
+
             <div className="form-group" style={{ marginBottom: 0 }}>
               <label className="form-label">Email de Acesso</label>
               <input
@@ -165,10 +195,11 @@ export default function AdminUsuariosPage() {
           <table className="custom-table">
             <thead>
               <tr>
-                <th>ID Usuário</th>
+                <th>Nome</th>
                 <th>Papel</th>
                 <th>Tribo Vinculada</th>
                 <th>Cadastrado em</th>
+                <th style={{ textAlign: 'right' }}>Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -176,7 +207,12 @@ export default function AdminUsuariosPage() {
                 const tribo = tribos.find((t) => t.id === item.tribo_id);
                 return (
                   <tr key={item.id}>
-                    <td style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>{item.id}</td>
+                    <td>
+                      <div style={{ fontWeight: 600 }}>{item.nome || '—'}</div>
+                      <div style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                        {item.id}
+                      </div>
+                    </td>
                     <td>
                       <span
                         className="badge"
@@ -194,13 +230,23 @@ export default function AdminUsuariosPage() {
                     <td style={{ color: 'var(--text-muted)' }}>
                       {new Date(item.criado_em).toLocaleDateString('pt-BR')}
                     </td>
+                    <td style={{ textAlign: 'right' }}>
+                      <button
+                        type="button"
+                        onClick={() => setUsuarioParaExcluir(item)}
+                        className="btn btn-danger"
+                        style={{ padding: '0.4rem 0.75rem', fontSize: '0.8rem' }}
+                      >
+                        🗑️ Remover
+                      </button>
+                    </td>
                   </tr>
                 );
               })}
 
               {usuarios.length === 0 && (
                 <tr>
-                  <td colSpan={4} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
+                  <td colSpan={5} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
                     Nenhum usuário cadastrado além do administrador principal.
                   </td>
                 </tr>
@@ -209,6 +255,16 @@ export default function AdminUsuariosPage() {
           </table>
         </div>
       </div>
+
+      <ConfirmDialog
+        isOpen={!!usuarioParaExcluir}
+        titulo="Remover Usuário"
+        mensagem={`Tem certeza que deseja remover o acesso de "${usuarioParaExcluir?.nome || usuarioParaExcluir?.id}"? Esta ação revoga o login e não pode ser desfeita. O histórico de pontuação (missões, lançamentos etc.) criado por ele é mantido, apenas o vínculo com o autor é desfeito.`}
+        textoExigido={usuarioParaExcluir?.nome || undefined}
+        labelConfirmar="Remover Usuário"
+        onConfirm={handleConfirmarExclusao}
+        onCancel={() => setUsuarioParaExcluir(null)}
+      />
     </div>
   );
 }
