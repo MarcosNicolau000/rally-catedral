@@ -104,15 +104,7 @@ h1, h2, h3, h4, h5, h6 {
   width: 100%;
 }
 
-@media (max-width: 768px) {
-  .app-container {
-    flex-direction: column;
-  }
-  .main-content {
-    padding: 1rem;
-    margin-bottom: 5rem; /* Espaço para nav mobile */
-  }
-}
+
 
 /* Header & Titles */
 .page-header {
@@ -359,3 +351,191 @@ h1, h2, h3, h4, h5, h6 {
   width: 100%;
   box-shadow: var(--shadow-card);
 }
+
+/* =====================================================
+   RESPONSIVO — ÁREA AUTENTICADA (Admin + Líder)
+   =====================================================
+   Sidebar → bottom nav, tabelas com scroll,
+   formulários empilhados, tipografia reduzida.
+   ===================================================== */
+
+/* Sidebar mobile: bottom navigation */
+@media (max-width: 768px) {
+  /* Layout principal vira coluna */
+  .app-container {
+    flex-direction: column;
+  }
+
+  /* Sidebar vira barra inferior fixa */
+  .sidebar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    height: auto;
+    flex-direction: row;
+    align-items: center;
+    gap: 0;
+    padding: 0;
+    border-right: none;
+    border-top: 1px solid var(--border-subtle);
+    background: rgba(12, 18, 30, 0.98);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    z-index: 50;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Esconder logo e botão sair no mobile */
+  .sidebar .brand-logo,
+  .sidebar .sidebar-logout {
+    display: none;
+  }
+
+  /* Nav ocupa tudo na barra */
+  .sidebar nav {
+    flex: 1;
+    width: 100%;
+  }
+
+  /* Nav lista vira horizontal */
+  .nav-list {
+    flex-direction: row;
+    gap: 0;
+    justify-content: space-around;
+    width: 100%;
+  }
+
+  /* Cada item de nav */
+  .nav-list li {
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* Links de navegação mobile */
+  .nav-link {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.2rem;
+    padding: 0.5rem 0.25rem;
+    font-size: 0.65rem;
+    text-align: center;
+    border-left: none;
+    border-radius: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Icone maior no mobile */
+  .nav-link span:first-child {
+    font-size: 1.2rem;
+  }
+
+  /* Label do nav truncado */
+  .nav-link span:last-child {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.6rem;
+  }
+
+  /* Link ativo no mobile: borda superior ao invés de lateral */
+  .nav-link:hover, .nav-link.active {
+    border-left: none;
+    border-top: 2px solid var(--accent-primary);
+    background: rgba(99, 102, 241, 0.08);
+  }
+
+  /* Conteúdo principal com espaço para a barra inferior */
+  .main-content {
+    padding: 1.5rem 1.25rem;
+    margin-bottom: 4.5rem;
+    max-width: 100%;
+  }
+
+  /* Títulos menores */
+  .page-title {
+    font-size: 1.5rem;
+  }
+
+  .page-subtitle {
+    font-size: 0.82rem;
+  }
+
+  /* Page header empilhado */
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 0.75rem;
+  }
+
+  /* Glass cards com padding adequado */
+  .glass-card {
+    padding: 1.25rem;
+  }
+
+  /* Tabelas: scroll horizontal obrigatório */
+  .table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin: 0 -1rem;
+    padding: 0 1rem;
+  }
+
+  .custom-table {
+    min-width: 600px;
+  }
+
+  .custom-table th,
+  .custom-table td {
+    padding: 0.65rem 0.75rem;
+    font-size: 0.82rem;
+    white-space: nowrap;
+  }
+
+  /* Botões menores */
+  .btn {
+    padding: 0.5rem 0.85rem;
+    font-size: 0.82rem;
+  }
+
+  /* Modal mais compacto */
+  .modal-content {
+    padding: 1.25rem;
+    margin: 0.5rem;
+  }
+
+  /* Badges menores */
+  .badge {
+    font-size: 0.68rem;
+    padding: 0.2rem 0.5rem;
+  }
+}
+
+/* Telas muito pequenas (< 480px) */
+@media (max-width: 480px) {
+  .page-title {
+    font-size: 1.25rem;
+  }
+
+  .main-content {
+    padding: 1.25rem 1rem;
+  }
+
+  .glass-card {
+    padding: 1.1rem;
+    border-radius: var(--radius-sm);
+  }
+
+  /* Grids de métricas: coluna única */
+  .glass-card > div[style*="grid"] {
+    grid-template-columns: 1fr !important;
+  }
+}
+

@@ -68,7 +68,7 @@ export function Sidebar({ papel, onLogout }: SidebarProps) {
       </nav>
 
       {onLogout && (
-        <button onClick={onLogout} className="btn btn-secondary" style={{ width: '100%' }}>
+        <button onClick={onLogout} className="btn btn-secondary sidebar-logout" style={{ width: '100%' }}>
           🚪 Sair
         </button>
       )}
