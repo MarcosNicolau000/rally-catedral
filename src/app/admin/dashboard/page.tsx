@@ -49,8 +49,8 @@ export default async function AdminDashboardPage() {
         </div>
       </div>
 
-      <RankingTable titulo="Classificação Geral de Nações" nacoes={ranking.nacoes} />
-      <RankingTable titulo="Classificação Geral de Tribos" tribos={ranking.tribos} />
+      <RankingTable titulo="Classificação Geral de Nações" nacoes={ranking.nacoes} variant="admin" />
+      <RankingTable titulo="Classificação Geral de Tribos" tribos={ranking.tribos} variant="admin" />
     </div>
   );
 }

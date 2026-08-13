@@ -21,6 +21,7 @@ export class SupabaseLancamentoRepository implements LancamentoRepository {
         pontos_calculados: dados.pontos_calculados,
         origem: dados.origem,
         confronto_id: dados.confronto_id || null,
+        descricao: dados.descricao || null,
         removido: false,
         registrado_por: dados.registrado_por,
       })

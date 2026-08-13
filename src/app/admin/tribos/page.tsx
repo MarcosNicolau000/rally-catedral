@@ -16,9 +16,17 @@ interface NacaoItem {
   nome: string;
 }
 
+interface UsuarioItem {
+  id: string;
+  nome: string | null;
+  papel: 'admin' | 'lider_tribo';
+  tribo_id: string | null;
+}
+
 export default function AdminTribosPage() {
   const [tribos, setTribos] = useState<TriboItem[]>([]);
   const [nacoes, setNacoes] = useState<NacaoItem[]>([]);
+  const [usuarios, setUsuarios] = useState<UsuarioItem[]>([]);
   const [nacaoId, setNacaoId] = useState('');
   const [nome, setNome] = useState('');
   const [erro, setErro] = useState<string | null>(null);
@@ -27,13 +35,18 @@ export default function AdminTribosPage() {
   const [triboParaExcluir, setTriboParaExcluir] = useState<TriboItem | null>(null);
 
   async function carregarDados() {
-    const [resT, resN] = await Promise.all([fetch('/api/tribos'), fetch('/api/nacoes')]);
+    const [resT, resN, resU] = await Promise.all([
+      fetch('/api/tribos'),
+      fetch('/api/nacoes'),
+      fetch('/api/usuarios'),
+    ]);
     if (resT.ok) setTribos(await resT.json());
     if (resN.ok) {
       const dataN = await resN.json();
       setNacoes(dataN);
       if (dataN.length > 0 && !nacaoId) setNacaoId(dataN[0].id);
     }
+    if (resU.ok) setUsuarios(await resU.json());
   }
 
   useEffect(() => {
@@ -143,6 +156,7 @@ export default function AdminTribosPage() {
               <tr>
                 <th>Nome da Tribo</th>
                 <th>Nação</th>
+                <th>Líder</th>
                 <th>Criado em</th>
                 <th style={{ textAlign: 'right' }}>Ações</th>
               </tr>
@@ -150,11 +164,21 @@ export default function AdminTribosPage() {
             <tbody>
               {tribos.map((item) => {
                 const nacao = nacoes.find((n) => n.id === item.nacao_id);
+                const lider = usuarios.find(
+                  (u) => u.papel === 'lider_tribo' && u.tribo_id === item.id
+                );
                 return (
                   <tr key={item.id}>
                     <td style={{ fontWeight: 600 }}>{item.nome}</td>
                     <td style={{ color: 'var(--accent-gold)', fontWeight: 500 }}>
                       {nacao?.nome || '—'}
+                    </td>
+                    <td>
+                      {lider ? (
+                        lider.nome || <span style={{ color: 'var(--text-muted)' }}>Sem nome cadastrado</span>
+                      ) : (
+                        <span style={{ color: 'var(--text-muted)' }}>Sem líder vinculado</span>
+                      )}
                     </td>
                     <td style={{ color: 'var(--text-muted)' }}>
                       {new Date(item.criado_em).toLocaleDateString('pt-BR')}
@@ -175,7 +199,7 @@ export default function AdminTribosPage() {
 
               {tribos.length === 0 && (
                 <tr>
-                  <td colSpan={4} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
+                  <td colSpan={5} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
                     Nenhuma tribo cadastrada ainda.
                   </td>
                 </tr>

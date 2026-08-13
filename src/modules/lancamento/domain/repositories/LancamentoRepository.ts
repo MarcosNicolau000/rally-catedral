@@ -11,8 +11,9 @@ export interface CriarLancamentoDados {
   tribo_id: string;
   quantidade: number;
   pontos_calculados: number;
-  origem: 'missao' | 'bonus_confronto';
+  origem: 'missao' | 'bonus_confronto' | 'ajuste_manual';
   confronto_id?: string | null;
+  descricao?: string | null;
   registrado_por: string;
 }
 

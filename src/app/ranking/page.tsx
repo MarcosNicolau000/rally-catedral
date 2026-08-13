@@ -1,52 +1,75 @@
 import { createClient } from '@/shared/infrastructure/supabase/server';
 import { makeAppServices } from '@/shared/infrastructure/factories';
 import { RankingTable } from '@/presentation/components/RankingTable';
+import Image from 'next/image';
 import Link from 'next/link';
+import './ranking.css';
 
-export const revalidate = 60; // Refresh a cada 60s
+// Revalidar a cada 60 segundos para dados quase em tempo real
+export const revalidate = 60;
 
 export default async function RankingPublicoPage() {
+  // Inicializando cliente Supabase e serviços da aplicação
   const supabase = await createClient();
   const services = makeAppServices(supabase);
 
+  // Consultando o ranking público (nações + tribos)
   const res = await services.ranking.consultarPublico.execute();
 
   return (
-    <div style={{ minHeight: '100vh', padding: '2rem 1rem' }}>
-      <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
-        <header
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: '2.5rem',
-            flexWrap: 'wrap',
-            gap: '1rem',
-          }}
-        >
-          <div>
-            <h1 className="page-title">🏆 Ranking Geral — Rally</h1>
-            <p className="page-subtitle">Classificação em tempo real das Nações e Tribos</p>
+    <div className="ranking-page">
+      <div className="ranking-wrapper">
+
+        {/* =====================================================
+            HEADER — Título principal + botão de acesso restrito
+            ===================================================== */}
+        <header className="ranking-header">
+          <div className="ranking-header-left">
+            <div>
+              <h1 className="ranking-main-title">🏆 Ranking Geral — Rally</h1>
+              <p className="ranking-main-subtitle">
+                Classificação em tempo real das Nações e Tribos
+              </p>
+            </div>
           </div>
-          <Link href="/login" className="btn btn-secondary">
+          <Link href="/login" className="ranking-btn-restricted">
             🔐 Acesso Restrito
           </Link>
         </header>
 
+        {/* =====================================================
+            CONTEÚDO — Tabelas ou estado desativado
+            ===================================================== */}
         {!res.ok ? (
-          <div className="glass-card" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
-            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🔒</div>
-            <h2 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>Exibição Pública Desativada</h2>
-            <p style={{ color: 'var(--text-muted)', maxWidth: '500px', margin: '0 auto' }}>
-              {res.error.message}
-            </p>
+          <div className="ranking-disabled">
+            <div className="ranking-disabled-icon">🔒</div>
+            <h2 className="ranking-disabled-title">Exibição Pública Desativada</h2>
+            <p className="ranking-disabled-text">{res.error.message}</p>
           </div>
         ) : (
           <div>
+            {/* Classificação por Nações */}
             <RankingTable titulo="Classificação por Nações" nacoes={res.value.nacoes} />
+
+            {/* Classificação por Tribos */}
             <RankingTable titulo="Classificação por Tribos" tribos={res.value.tribos} />
           </div>
         )}
+
+        {/* =====================================================
+            FOOTER — Logo FJU Sorocaba SP
+            ===================================================== */}
+        <footer className="ranking-footer">
+          <Image
+            src="/fju_sorocaba_logo.png"
+            alt="FJU Sorocaba SP"
+            width={120}
+            height={24}
+            className="ranking-footer-logo"
+            unoptimized
+            style={{ width: 'auto', height: '24px' }}
+          />
+        </footer>
       </div>
     </div>
   );

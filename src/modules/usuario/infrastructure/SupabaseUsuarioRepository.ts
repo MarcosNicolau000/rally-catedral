@@ -5,6 +5,7 @@
 // =====================================================
 
 import { SupabaseClient } from '@supabase/supabase-js';
+import { createAdminClient } from '@/shared/infrastructure/supabase/admin';
 import { UsuarioRepository } from '../domain/repositories/UsuarioRepository';
 import { Usuario, CriarUsuarioDTO } from '../domain/entities/Usuario';
 
@@ -26,6 +27,7 @@ export class SupabaseUsuarioRepository implements UsuarioRepository {
 
     return {
       id: perfil.id,
+      nome: perfil.nome,
       papel: perfil.papel,
       tribo_id: perfil.tribo_id,
       email: user.email,
@@ -44,6 +46,7 @@ export class SupabaseUsuarioRepository implements UsuarioRepository {
 
     return {
       id: perfil.id,
+      nome: perfil.nome,
       papel: perfil.papel,
       tribo_id: perfil.tribo_id,
       criado_em: perfil.criado_em,
@@ -60,6 +63,7 @@ export class SupabaseUsuarioRepository implements UsuarioRepository {
 
     return perfis.map((p) => ({
       id: p.id,
+      nome: p.nome,
       papel: p.papel,
       tribo_id: p.tribo_id,
       criado_em: p.criado_em,
@@ -84,6 +88,7 @@ export class SupabaseUsuarioRepository implements UsuarioRepository {
       .from('usuario_perfil')
       .insert({
         id: userId,
+        nome: dados.nome,
         papel: dados.papel,
         tribo_id: dados.tribo_id || null,
       })
@@ -96,6 +101,7 @@ export class SupabaseUsuarioRepository implements UsuarioRepository {
 
     return {
       id: perfil.id,
+      nome: perfil.nome,
       papel: perfil.papel,
       tribo_id: perfil.tribo_id,
       email: dados.email,
@@ -115,6 +121,7 @@ export class SupabaseUsuarioRepository implements UsuarioRepository {
 
     return {
       id: perfil.id,
+      nome: perfil.nome,
       papel: perfil.papel,
       tribo_id: perfil.tribo_id,
       criado_em: perfil.criado_em,
@@ -122,10 +129,14 @@ export class SupabaseUsuarioRepository implements UsuarioRepository {
   }
 
   async remover(id: string): Promise<void> {
-    const { error } = await this.supabase
-      .from('usuario_perfil')
-      .delete()
-      .eq('id', id);
+    // Usa o client admin (service role) para remover o usuário do Auth,
+    // o que cascateia automaticamente a remoção de usuario_perfil
+    // (FK "id references auth.users(id) on delete cascade").
+    // A migration 006 troca as FKs de missao/lancamento/confronto/
+    // snapshot_pontuacao para ON DELETE SET NULL, então a remoção
+    // funciona mesmo que o usuário já tenha histórico vinculado.
+    const adminClient = createAdminClient();
+    const { error } = await adminClient.auth.admin.deleteUser(id);
 
     if (error) throw error;
   }

@@ -9,6 +9,8 @@ import { PapelUsuario } from '../value-objects/PapelUsuario';
 export interface Usuario {
   // ID do usuário (mesmo ID do auth.users)
   id: string;
+  // Nome de exibição do usuário
+  nome: string | null;
   // Papel no sistema ('admin' | 'lider_tribo')
   papel: PapelUsuario;
   // ID da tribo vinculada (obrigatório se papel === 'lider_tribo')
@@ -20,6 +22,7 @@ export interface Usuario {
 }
 
 export interface CriarUsuarioDTO {
+  nome: string;
   email: string;
   senha: string;
   papel: PapelUsuario;
