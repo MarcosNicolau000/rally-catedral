@@ -1,0 +1,398 @@
+/* =====================================================
+   RANKING PÚBLICO — ESTILOS TEMÁTICOS "COMBATE"
+   =====================================================
+   Visual inspirado em arena de boxe com tons de fogo,
+   laranja e vermelho. Background dramático com borda.
+   ===================================================== */
+
+/* Container principal com background temático */
+.ranking-page {
+  min-height: 100vh;
+  background: #0a0600 url('/bg_com_borda.png') no-repeat center top;
+  background-size: cover;
+  padding: 1.5rem 1rem 2rem;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Overlay escuro para legibilidade */
+.ranking-page::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.ranking-page > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Wrapper interno */
+.ranking-wrapper {
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+/* =====================================================
+   HEADER — Título + Botão Acesso Restrito
+   ===================================================== */
+.ranking-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.75rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.ranking-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* Ícone troféu no header */
+.ranking-header-icon {
+  width: 40px;
+  height: 40px;
+  filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.6));
+}
+
+.ranking-main-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.85rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #fff;
+  text-shadow: 0 0 20px rgba(245, 158, 11, 0.5), 0 2px 4px rgba(0,0,0,0.7);
+}
+
+.ranking-main-subtitle {
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-top: 0.15rem;
+}
+
+/* Botão de acesso restrito */
+.ranking-btn-restricted {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 1.1rem;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  backdrop-filter: blur(8px);
+}
+
+.ranking-btn-restricted:hover {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(245, 158, 11, 0.4);
+  color: #fbbf24;
+  transform: translateY(-1px);
+}
+
+/* =====================================================
+   SEÇÃO DE CLASSIFICAÇÃO (Nações e Tribos)
+   ===================================================== */
+.ranking-section {
+  background: rgba(10, 6, 0, 0.75);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+  box-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(245, 158, 11, 0.1);
+}
+
+/* Cabeçalho da seção */
+.ranking-section-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.75rem 1.25rem;
+  background: linear-gradient(
+    90deg,
+    rgba(245, 158, 11, 0.15) 0%,
+    rgba(245, 158, 11, 0.05) 100%
+  );
+  border-bottom: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.ranking-section-icon {
+  width: 28px;
+  height: 28px;
+  filter: drop-shadow(0 0 4px rgba(245, 158, 11, 0.5));
+}
+
+.ranking-section-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #fbbf24;
+  text-shadow: 0 0 10px rgba(245, 158, 11, 0.3);
+}
+
+/* =====================================================
+   TABELA DE RANKING
+   ===================================================== */
+.ranking-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.88rem;
+}
+
+/* Cabeçalho da tabela */
+.ranking-table thead th {
+  padding: 0.6rem 1.25rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.4);
+  text-transform: uppercase;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: transparent;
+}
+
+.ranking-table thead th.col-pos { width: 55px; }
+.ranking-table thead th.col-name { /* flex */ }
+.ranking-table thead th.col-weekly { text-align: center; }
+.ranking-table thead th.col-total { text-align: right; width: 140px; }
+
+/* Células do corpo */
+.ranking-table tbody td {
+  padding: 0.65rem 1.25rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  color: #f3f4f6;
+  vertical-align: middle;
+}
+
+.ranking-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Hover sutil nas linhas */
+.ranking-table tbody tr {
+  transition: background 0.2s ease;
+}
+
+.ranking-table tbody tr:hover {
+  background: rgba(245, 158, 11, 0.05);
+}
+
+/* =====================================================
+   BADGE DE POSIÇÃO (1°, 2°, 3° e demais)
+   ===================================================== */
+.ranking-pos {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  font-weight: 800;
+  font-size: 0.85rem;
+  font-family: 'Outfit', sans-serif;
+}
+
+/* Top 3 com gradiente dourado/laranja */
+.ranking-pos--1 {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #000;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.4);
+}
+.ranking-pos--2 {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #000;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.3);
+}
+.ranking-pos--3 {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #000;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.2);
+}
+
+/* Posições 4+ */
+.ranking-pos--other {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* =====================================================
+   CÉLULA DE NOME (logo + texto)
+   ===================================================== */
+.ranking-name-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.ranking-logo {
+  width: 56px;
+  height: 56px;
+  border-radius: 8px;
+  object-fit: contain;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 2px;
+  flex-shrink: 0;
+}
+
+/* Logo maior para nações (mais destaque) */
+.ranking-logo--nacao {
+  width: 72px;
+  height: 72px;
+  border-radius: 10px;
+}
+
+.ranking-item-label {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #f3f4f6;
+}
+
+/* Destaque no nome (tipo SIMEÃO, IMPACTO) */
+.ranking-item-label strong {
+  color: #fbbf24;
+  font-weight: 700;
+}
+
+/* =====================================================
+   COLUNAS DE PONTUAÇÃO
+   ===================================================== */
+.ranking-points-weekly {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 500;
+  font-size: 0.88rem;
+}
+
+.ranking-points-total {
+  text-align: right;
+  font-weight: 800;
+  font-size: 1rem;
+  color: #fbbf24;
+  font-family: 'Outfit', sans-serif;
+  text-shadow: 0 0 8px rgba(245, 158, 11, 0.3);
+  text-transform: uppercase;
+}
+
+/* =====================================================
+   FOOTER — Logo FJU Sorocaba SP
+   ===================================================== */
+.ranking-footer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  opacity: 0.7;
+}
+
+.ranking-footer-logo {
+  height: 24px;
+  filter: brightness(1.2);
+}
+
+.ranking-footer-text {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.6);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* =====================================================
+   ESTADO: Ranking Desativado
+   ===================================================== */
+.ranking-disabled {
+  text-align: center;
+  padding: 4rem 2rem;
+  background: rgba(10, 6, 0, 0.75);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  border-radius: 12px;
+}
+
+.ranking-disabled-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.ranking-disabled-title {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+  color: #fbbf24;
+}
+
+.ranking-disabled-text {
+  color: rgba(255, 255, 255, 0.5);
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+/* =====================================================
+   ESTADO: Nenhum registro
+   ===================================================== */
+.ranking-empty-row td {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.4);
+  padding: 2rem !important;
+  font-style: italic;
+}
+
+/* =====================================================
+   RESPONSIVO
+   ===================================================== */
+@media (max-width: 640px) {
+  .ranking-page {
+    padding: 1rem 0.5rem 1.5rem;
+  }
+
+  .ranking-main-title {
+    font-size: 1.25rem;
+  }
+
+  .ranking-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .ranking-logo--nacao {
+    width: 56px;
+    height: 56px;
+  }
+
+  .ranking-logo {
+    width: 44px;
+    height: 44px;
+  }
+
+  .ranking-table thead th,
+  .ranking-table tbody td {
+    padding: 0.5rem 0.75rem;
+  }
+
+  .ranking-points-total {
+    font-size: 0.85rem;
+  }
+
+  .ranking-item-label {
+    font-size: 0.8rem;
+  }
+}
