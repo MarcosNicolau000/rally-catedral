@@ -17,6 +17,11 @@ export class CriarMissaoUseCase {
       return failure(new DomainError('NOME_OBRIGATORIO', 'O nome da missão é obrigatório.'));
     }
 
+    if (dados.nome.trim().length > 100) {
+      return failure(new DomainError('NOME_MUITO_LONGO', 'O nome da missão não pode ter mais de 100 caracteres.'));
+    }
+
+
     if (dados.pontos_base < 0) {
       return failure(new DomainError('PONTOS_INVALIDOS', 'Os pontos base da missão devem ser maior ou igual a zero.'));
     }
@@ -25,11 +30,24 @@ export class CriarMissaoUseCase {
       return failure(new DomainError('TIPO_INVALIDO', 'Tipo de missão inválido (deve ser "booleana" ou "contagem").'));
     }
 
+    const nomeLimpo = dados.nome.trim();
+
+    // Verificando se já existe uma missão cadastrada com este nome (case-insensitive)
+    const missoesExistentes = await this.missaoRepo.listarTodas();
+    const jaExiste = missoesExistentes.some(
+      (m) => m.nome.trim().toLowerCase() === nomeLimpo.toLowerCase()
+    );
+
+    if (jaExiste) {
+      return failure(new DomainError('MISSAO_DUPLICADA', 'Já existe uma missão cadastrada com este nome.'));
+    }
+
     const missao = await this.missaoRepo.criar({
       ...dados,
-      nome: dados.nome.trim(),
+      nome: nomeLimpo,
     });
 
     return success(missao);
   }
 }
+

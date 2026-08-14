@@ -71,43 +71,54 @@ export class SupabaseUsuarioRepository implements UsuarioRepository {
   }
 
   async criar(dados: CriarUsuarioDTO): Promise<Usuario> {
-    // 1. Criar usuário no Supabase Auth usando o admin api ou signup
-    const { data: authData, error: authError } = await this.supabase.auth.signUp({
+    // 1. Criar usuário no Supabase Auth usando a Admin API (Service Role)
+    // Isso evita alterar/deslogar a sessão do Admin que está efetuando o cadastro
+    const adminClient = createAdminClient();
+    const { data: authData, error: authError } = await adminClient.auth.admin.createUser({
       email: dados.email,
       password: dados.senha,
+      email_confirm: true, // Auto-confirma o email para permitir login imediato
     });
 
     if (authError || !authData.user) {
-      throw new Error(authError?.message || 'Falha ao registrar autenticação.');
+      throw new Error(authError?.message || 'Falha ao registrar autenticação de usuário.');
     }
 
     const userId = authData.user.id;
 
-    // 2. Inserir perfil na tabela usuario_perfil
-    const { data: perfil, error: perfilError } = await this.supabase
-      .from('usuario_perfil')
-      .insert({
-        id: userId,
-        nome: dados.nome,
-        papel: dados.papel,
-        tribo_id: dados.tribo_id || null,
-      })
-      .select()
-      .single();
+    // 2. Inserir perfil na tabela usuario_perfil com suporte a rollback automático
+    try {
+      const { data: perfil, error: perfilError } = await this.supabase
+        .from('usuario_perfil')
+        .insert({
+          id: userId,
+          nome: dados.nome,
+          papel: dados.papel,
+          tribo_id: dados.tribo_id || null,
+        })
+        .select()
+        .single();
 
-    if (perfilError) {
-      throw perfilError;
+      if (perfilError) {
+        throw perfilError;
+      }
+
+      return {
+        id: perfil.id,
+        nome: perfil.nome,
+        papel: perfil.papel,
+        tribo_id: perfil.tribo_id,
+        email: dados.email,
+        criado_em: perfil.criado_em,
+      };
+    } catch (err: unknown) {
+      // Rollback de segurança: remove o usuário recém-criado do Supabase Auth para evitar orphan users
+      await adminClient.auth.admin.deleteUser(userId);
+      const mensagem = err instanceof Error ? err.message : String(err);
+      throw new Error(`Falha ao salvar perfil do usuário: ${mensagem}`);
     }
-
-    return {
-      id: perfil.id,
-      nome: perfil.nome,
-      papel: perfil.papel,
-      tribo_id: perfil.tribo_id,
-      email: dados.email,
-      criado_em: perfil.criado_em,
-    };
   }
+
 
   async vincularATribo(usuarioId: string, triboId: string): Promise<Usuario> {
     const { data: perfil, error } = await this.supabase

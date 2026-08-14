@@ -82,11 +82,18 @@ export default async function LiderPontuacaoPage() {
 
               {lancamentos.length === 0 && (
                 <tr>
-                  <td colSpan={4} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
-                    Nenhum lançamento registrado para esta tribo até o momento.
+                  <td colSpan={4} style={{ textAlign: 'center', padding: '3rem 1.5rem', color: 'var(--text-muted)' }}>
+                    <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🚀</div>
+                    <div style={{ fontWeight: 600, color: '#fff', fontSize: '1.05rem', marginBottom: '0.25rem' }}>
+                      Sua tribo ainda não registrou pontos neste Rally!
+                    </div>
+                    <div style={{ fontSize: '0.85rem' }}>
+                      Acesse o menu <strong>+ Novo Lançamento</strong> para pontuar nas missões ativas.
+                    </div>
                   </td>
                 </tr>
               )}
+
             </tbody>
           </table>
         </div>

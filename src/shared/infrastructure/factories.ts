@@ -87,15 +87,16 @@ export function makeAppServices(supabase: SupabaseClient) {
     // Use Cases — Nação
     nacao: {
       criar: new CriarNacaoUseCase(nacaoRepo),
-      remover: new RemoverNacaoUseCase(nacaoRepo),
+      remover: new RemoverNacaoUseCase(nacaoRepo, confrontoRepo),
       listar: new ListarNacoesUseCase(nacaoRepo),
     },
     // Use Cases — Tribo
     tribo: {
       criar: new CriarTriboUseCase(triboRepo),
-      remover: new RemoverTriboUseCase(triboRepo),
+      remover: new RemoverTriboUseCase(triboRepo, confrontoRepo),
       listar: new ListarTribosUseCase(triboRepo),
     },
+
     // Use Cases — Usuário
     usuario: {
       obterLogado: new ObterUsuarioLogadoUseCase(usuarioRepo),

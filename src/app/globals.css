@@ -18,11 +18,11 @@
   --accent-gold: #f59e0b;
   --accent-gold-glow: rgba(245, 158, 11, 0.25);
   --gradient-gold: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-  
+
   --accent-primary: #6366f1;
   --accent-primary-glow: rgba(99, 102, 241, 0.25);
   --gradient-primary: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-  
+
   --accent-emerald: #10b981;
   --accent-emerald-glow: rgba(16, 185, 129, 0.25);
   --gradient-emerald: linear-gradient(135deg, #10b981 0%, #059669 100%);
@@ -39,7 +39,7 @@
   --border-subtle: rgba(255, 255, 255, 0.08);
   --border-glow: rgba(99, 102, 241, 0.3);
   --glass-blur: blur(16px);
-  
+
   /* Raios e Sombras */
   --radius-sm: 8px;
   --radius-md: 12px;
@@ -49,8 +49,34 @@
 
   /* Fontes */
   --font-heading: 'Outfit', sans-serif;
-  --font-body: 'Plus Jakarta Sans', sans-serif;
+  --font-body: 'Inter', sans-serif;
 }
+
+/* Skip Link de Acessibilidade (Puro CSS para Server Components) */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: auto;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  z-index: 9999;
+}
+
+.skip-link:focus {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  width: auto;
+  height: auto;
+  padding: 0.75rem 1.25rem;
+  background: var(--accent-gold);
+  color: #000;
+  font-weight: bold;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
 
 * {
   box-sizing: border-box;
@@ -64,12 +90,17 @@ body {
   font-family: var(--font-body);
   min-height: 100vh;
   overflow-x: hidden;
-  background-image: 
+  background-image:
     radial-gradient(circle at 15% 15%, rgba(99, 102, 241, 0.08) 0%, transparent 45%),
     radial-gradient(circle at 85% 85%, rgba(245, 158, 11, 0.06) 0%, transparent 45%);
 }
 
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   font-family: var(--font-heading);
   letter-spacing: -0.02em;
 }
@@ -104,20 +135,13 @@ h1, h2, h3, h4, h5, h6 {
   width: 100%;
 }
 
-@media (max-width: 768px) {
-  .app-container {
-    flex-direction: column;
-  }
-  .main-content {
-    padding: 1rem;
-    margin-bottom: 5rem; /* Espaço para nav mobile */
-  }
-}
+
 
 /* Header & Titles */
 .page-header {
   margin-bottom: 2rem;
 }
+
 .page-title {
   font-size: 2.25rem;
   font-weight: 700;
@@ -125,6 +149,7 @@ h1, h2, h3, h4, h5, h6 {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
+
 .page-subtitle {
   color: var(--text-muted);
   font-size: 0.95rem;
@@ -153,6 +178,7 @@ h1, h2, h3, h4, h5, h6 {
   color: white;
   box-shadow: 0 4px 14px 0 var(--accent-primary-glow);
 }
+
 .btn-primary:hover {
   transform: translateY(-1px);
   filter: brightness(1.1);
@@ -164,6 +190,7 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 700;
   box-shadow: 0 4px 14px 0 var(--accent-gold-glow);
 }
+
 .btn-gold:hover {
   transform: translateY(-1px);
   filter: brightness(1.1);
@@ -174,6 +201,7 @@ h1, h2, h3, h4, h5, h6 {
   color: white;
   box-shadow: 0 4px 14px 0 var(--accent-danger-glow);
 }
+
 .btn-danger:hover {
   filter: brightness(1.15);
 }
@@ -183,6 +211,7 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--text-main);
   border: 1px solid var(--border-subtle);
 }
+
 .btn-secondary:hover {
   background: rgba(255, 255, 255, 0.1);
 }
@@ -271,10 +300,26 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 800;
   font-size: 0.85rem;
 }
-.rank-1 { background: var(--gradient-gold); color: #000; }
-.rank-2 { background: linear-gradient(135deg, #e5e7eb, #9ca3af); color: #000; }
-.rank-3 { background: linear-gradient(135deg, #d97706, #78350f); color: #fff; }
-.rank-other { background: rgba(255, 255, 255, 0.08); color: var(--text-muted); }
+
+.rank-1 {
+  background: var(--gradient-gold);
+  color: #000;
+}
+
+.rank-2 {
+  background: linear-gradient(135deg, #e5e7eb, #9ca3af);
+  color: #000;
+}
+
+.rank-3 {
+  background: linear-gradient(135deg, #d97706, #78350f);
+  color: #fff;
+}
+
+.rank-other {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-muted);
+}
 
 /* Badges de Status */
 .badge {
@@ -284,9 +329,24 @@ h1, h2, h3, h4, h5, h6 {
   font-size: 0.75rem;
   font-weight: 600;
 }
-.badge-active { background: var(--accent-emerald-glow); color: #34d399; border: 1px solid rgba(52, 211, 153, 0.3); }
-.badge-inactive { background: rgba(156, 163, 175, 0.1); color: #9ca3af; border: 1px solid rgba(156, 163, 175, 0.2); }
-.badge-gold { background: var(--accent-gold-glow); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.3); }
+
+.badge-active {
+  background: var(--accent-emerald-glow);
+  color: #34d399;
+  border: 1px solid rgba(52, 211, 153, 0.3);
+}
+
+.badge-inactive {
+  background: rgba(156, 163, 175, 0.1);
+  color: #9ca3af;
+  border: 1px solid rgba(156, 163, 175, 0.2);
+}
+
+.badge-gold {
+  background: var(--accent-gold-glow);
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.3);
+}
 
 /* Sidebar Navigation */
 .sidebar {
@@ -331,7 +391,8 @@ h1, h2, h3, h4, h5, h6 {
   transition: all 0.2s;
 }
 
-.nav-link:hover, .nav-link.active {
+.nav-link:hover,
+.nav-link.active {
   background: rgba(99, 102, 241, 0.12);
   color: white;
   border-left: 3px solid var(--accent-primary);
@@ -348,6 +409,7 @@ h1, h2, h3, h4, h5, h6 {
   justify-content: center;
   z-index: 100;
   padding: 1rem;
+  animation: fadeInOverlay 0.25s ease-out forwards;
 }
 
 .modal-content {
@@ -358,4 +420,217 @@ h1, h2, h3, h4, h5, h6 {
   max-width: 500px;
   width: 100%;
   box-shadow: var(--shadow-card);
+  animation: scaleInModal 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fadeInOverlay {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scaleInModal {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+
+/* =====================================================
+   RESPONSIVO — ÁREA AUTENTICADA (Admin + Líder)
+   =====================================================
+   Sidebar → bottom nav, tabelas com scroll,
+   formulários empilhados, tipografia reduzida.
+   ===================================================== */
+
+/* Sidebar mobile: bottom navigation */
+@media (max-width: 768px) {
+
+  /* Layout principal vira coluna */
+  .app-container {
+    flex-direction: column;
+  }
+
+  /* Sidebar vira barra inferior fixa */
+  .sidebar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    height: auto;
+    flex-direction: row;
+    align-items: center;
+    gap: 0;
+    padding: 0;
+    border-right: none;
+    border-top: 1px solid var(--border-subtle);
+    background: rgba(12, 18, 30, 0.98);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    z-index: 50;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Esconder logo e botão sair no mobile */
+  .sidebar .brand-logo,
+  .sidebar .sidebar-logout {
+    display: none;
+  }
+
+  /* Nav ocupa tudo na barra */
+  .sidebar nav {
+    flex: 1;
+    width: 100%;
+  }
+
+  /* Nav lista vira horizontal */
+  .nav-list {
+    flex-direction: row;
+    gap: 0;
+    justify-content: space-around;
+    width: 100%;
+  }
+
+  /* Cada item de nav */
+  .nav-list li {
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* Links de navegação mobile */
+  .nav-link {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.2rem;
+    padding: 0.5rem 0.25rem;
+    font-size: 0.65rem;
+    text-align: center;
+    border-left: none;
+    border-radius: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Icone maior no mobile */
+  .nav-link span:first-child {
+    font-size: 1.2rem;
+  }
+
+  /* Label do nav truncado */
+  .nav-link span:last-child {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.6rem;
+  }
+
+  /* Link ativo no mobile: borda superior ao invés de lateral */
+  .nav-link:hover,
+  .nav-link.active {
+    border-left: none;
+    border-top: 2px solid var(--accent-primary);
+    background: rgba(99, 102, 241, 0.08);
+  }
+
+  /* Conteúdo principal com espaço para a barra inferior */
+  .main-content {
+    padding: 1.5rem 1.25rem;
+    margin-bottom: 4.5rem;
+    max-width: 100%;
+  }
+
+  /* Títulos menores */
+  .page-title {
+    font-size: 1.5rem;
+  }
+
+  .page-subtitle {
+    font-size: 0.82rem;
+  }
+
+  /* Page header empilhado */
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 0.75rem;
+  }
+
+  /* Glass cards com padding adequado */
+  .glass-card {
+    padding: 1.25rem;
+  }
+
+  /* Tabelas: scroll horizontal obrigatório */
+  .table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin: 0 -1rem;
+    padding: 0 1rem;
+  }
+
+  .custom-table {
+    min-width: 600px;
+  }
+
+  .custom-table th,
+  .custom-table td {
+    padding: 0.65rem 0.75rem;
+    font-size: 0.82rem;
+    white-space: nowrap;
+  }
+
+  /* Botões menores */
+  .btn {
+    padding: 0.5rem 0.85rem;
+    font-size: 0.82rem;
+  }
+
+  /* Modal mais compacto */
+  .modal-content {
+    padding: 1.25rem;
+    margin: 0.5rem;
+  }
+
+  /* Badges menores */
+  .badge {
+    font-size: 0.68rem;
+    padding: 0.2rem 0.5rem;
+  }
+}
+
+/* Telas muito pequenas (< 480px) */
+@media (max-width: 480px) {
+  .page-title {
+    font-size: 1.25rem;
+  }
+
+  .main-content {
+    padding: 1.25rem 1rem;
+  }
+
+  .glass-card {
+    padding: 1.1rem;
+    border-radius: var(--radius-sm);
+  }
+
+  /* Grids de métricas: coluna única */
+  .glass-card>div[style*="grid"] {
+    grid-template-columns: 1fr !important;
+  }
 }

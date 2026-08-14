@@ -44,8 +44,8 @@ export default function AdminTribosPage() {
     if (resN.ok) {
       const dataN = await resN.json();
       setNacoes(dataN);
-      if (dataN.length > 0 && !nacaoId) setNacaoId(dataN[0].id);
     }
+
     if (resU.ok) setUsuarios(await resU.json());
   }
 
@@ -114,18 +114,27 @@ export default function AdminTribosPage() {
         <form onSubmit={handleCriar} style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
           <div className="form-group" style={{ minWidth: '220px', marginBottom: 0 }}>
             <label className="form-label">Nação Pertencente</label>
-            <select
-              className="input-field"
-              value={nacaoId}
-              onChange={(e) => setNacaoId(e.target.value)}
-              required
-            >
-              {nacoes.map((n) => (
-                <option key={n.id} value={n.id} style={{ background: 'var(--bg-card-solid)' }}>
-                  {n.nome}
+            {nacoes.length === 0 ? (
+              <div style={{ fontSize: '0.85rem', color: '#f87171', marginTop: '0.4rem' }}>
+                ⚠️ Nenhuma nação cadastrada. Acesse <strong>Admin &gt; Nações</strong> para cadastrar antes de criar tribos.
+              </div>
+            ) : (
+              <select
+                className="input-field"
+                value={nacaoId}
+                onChange={(e) => setNacaoId(e.target.value)}
+                required
+              >
+                <option value="" style={{ background: 'var(--bg-card-solid)' }}>
+                  Selecione uma nação...
                 </option>
-              ))}
-            </select>
+                {nacoes.map((n) => (
+                  <option key={n.id} value={n.id} style={{ background: 'var(--bg-card-solid)' }}>
+                    {n.nome}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
 
           <div className="form-group" style={{ flex: 1, minWidth: '240px', marginBottom: 0 }}>
@@ -140,10 +149,11 @@ export default function AdminTribosPage() {
             />
           </div>
 
-          <button type="submit" disabled={carregando} className="btn btn-primary">
+          <button type="submit" disabled={carregando || !nacaoId} className="btn btn-primary">
             {carregando ? 'Salvando...' : 'Salvar Tribo'}
           </button>
         </form>
+
       </div>
 
       {/* Tabela de Tribos */}

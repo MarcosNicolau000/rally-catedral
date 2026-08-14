@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+
 import { registrarLancamentoLiderAction } from './actions';
+import { useOfflineStatus } from '@/presentation/hooks/useOfflineStatus';
 
 interface MissaoItem {
   id: string;
@@ -12,6 +14,7 @@ interface MissaoItem {
 }
 
 export default function LiderLancamentosPage() {
+  const isOffline = useOfflineStatus();
   const [missoes, setMissoes] = useState<MissaoItem[]>([]);
   const [missaoSelecionadaId, setMissaoSelecionadaId] = useState('');
   const [quantidade, setQuantidade] = useState(1);
@@ -20,6 +23,7 @@ export default function LiderLancamentosPage() {
   const [erro, setErro] = useState<string | null>(null);
   const [sucesso, setSucesso] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(false);
+
 
   async function carregarMissoes() {
     const res = await fetch('/api/missoes?ativas=true');
@@ -181,8 +185,13 @@ export default function LiderLancamentosPage() {
               </div>
             )}
 
-            <button type="submit" disabled={carregando} className="btn btn-gold" style={{ width: '100%', padding: '0.85rem' }}>
-              {carregando ? 'Registrando...' : 'Confirmar Lançamento'}
+            <button
+              type="submit"
+              disabled={carregando || isOffline}
+              className="btn btn-gold"
+              style={{ width: '100%', padding: '0.85rem' }}
+            >
+              {carregando ? 'Registrando...' : isOffline ? 'Offline — Sem Conexão' : 'Confirmar Lançamento'}
             </button>
           </form>
         )}
@@ -190,3 +199,4 @@ export default function LiderLancamentosPage() {
     </div>
   );
 }
+

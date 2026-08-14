@@ -7,6 +7,7 @@ import Link from 'next/link';
 export default function LoginPage() {
   const [erro, setErro] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(false);
+  const [senha, setSenha] = useState('');
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -18,9 +19,11 @@ export default function LoginPage() {
 
     if (res?.error) {
       setErro(res.error);
+      setSenha('');
       setCarregando(false);
     }
   }
+
 
   return (
     <div
@@ -75,11 +78,14 @@ export default function LoginPage() {
             <input
               name="password"
               type="password"
+              value={senha}
+              onChange={(e) => setSenha(e.target.value)}
               required
               className="input-field"
               placeholder="••••••••"
             />
           </div>
+
 
           <button
             type="submit"

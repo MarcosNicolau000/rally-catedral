@@ -44,9 +44,14 @@ export default async function AdminDashboardPage() {
         <div className="glass-card">
           <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: 600 }}>LÍDER DA COMPETIÇÃO</div>
           <div style={{ fontSize: '1.25rem', fontWeight: 700, marginTop: '0.5rem', color: '#34d399' }}>
-            {ranking.nacoes[0]?.nacao_nome || 'Nenhuma'}
+            {ranking.nacoes[0]?.nacao_nome || (
+              <Link href="/admin/nacoes" style={{ fontSize: '0.9rem', color: 'var(--accent-gold)', textDecoration: 'underline' }}>
+                Nenhuma (Cadastrar Nação)
+              </Link>
+            )}
           </div>
         </div>
+
       </div>
 
       <RankingTable titulo="Classificação Geral de Nações" nacoes={ranking.nacoes} variant="admin" />

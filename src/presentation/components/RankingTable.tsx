@@ -42,15 +42,18 @@ interface RankingTableProps {
 
 // Formata nome com destaque: "Nação Imbatível" → prefix:"NAÇÃO" + highlight:"IMBATÍVEL"
 function formatName(nome: string): { prefix: string; highlight: string } {
-  const parts = nome.split(' ');
+  if (!nome) return { prefix: '', highlight: '' };
+  const cleanName = nome.replace(/\s+/g, ' ').trim();
+  const parts = cleanName.split(' ');
   if (parts.length >= 2) {
     return {
       prefix: parts[0].toUpperCase(),
       highlight: parts.slice(1).join(' ').toUpperCase(),
     };
   }
-  return { prefix: '', highlight: nome.toUpperCase() };
+  return { prefix: '', highlight: cleanName.toUpperCase() };
 }
+
 
 export function RankingTable({ titulo, nacoes, tribos, variant = 'combate' }: RankingTableProps) {
   // =====================================================

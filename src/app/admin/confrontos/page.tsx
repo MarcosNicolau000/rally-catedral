@@ -118,18 +118,22 @@ export default function AdminConfrontosPage() {
     if (res?.error) {
       alert(res.error);
     } else if (res?.success) {
-      const nomeVencedor = getNomeParticipante(
-        res.vencedorId!,
-        confrontos.find((c) => c.id === confrontoId)?.nivel || 'tribo'
-      );
-      const msgEmpate = res.empate ? ' (empate técnico — participante A favorecido)' : '';
-      setResultado(
-        `🏆 Confronto finalizado! Vencedor: ${nomeVencedor} (${res.pontosA} × ${res.pontosB} pts)${msgEmpate}`
-      );
+      const nivel = confrontos.find((c) => c.id === confrontoId)?.nivel || 'tribo';
+      if (res.empate || !res.vencedorId) {
+        setResultado(
+          `🤝 Confronto finalizado em EMPATE TÉCNICO! (${res.pontosA} × ${res.pontosB} pts — nenhum bônus concedido)`
+        );
+      } else {
+        const nomeVencedor = getNomeParticipante(res.vencedorId, nivel);
+        setResultado(
+          `🏆 Confronto finalizado com sucesso! Vencedor: ${nomeVencedor} (${res.pontosA} × ${res.pontosB} pts)`
+        );
+      }
       carregarDados();
     }
     setFechandoId(null);
   }
+
 
   function getNomeParticipante(id: string, nivel: 'tribo' | 'nacao') {
     if (nivel === 'tribo') {
@@ -430,9 +434,15 @@ export default function AdminConfrontosPage() {
                     </td>
                     <td style={{ textAlign: 'right' }}>
                       {item.finalizado ? (
-                        <span style={{ fontWeight: 700, color: '#34d399' }}>
-                          🏆 Vencedor: {getNomeParticipante(item.vencedor_id!, item.nivel)}
-                        </span>
+                        item.vencedor_id ? (
+                          <span style={{ fontWeight: 700, color: '#34d399' }}>
+                            🏆 Vencedor: {getNomeParticipante(item.vencedor_id, item.nivel)}
+                          </span>
+                        ) : (
+                          <span style={{ fontWeight: 700, color: '#fbbf24' }}>
+                            🤝 Empate Técnico
+                          </span>
+                        )
                       ) : (
                         <button
                           type="button"
@@ -445,6 +455,7 @@ export default function AdminConfrontosPage() {
                         </button>
                       )}
                     </td>
+
                   </tr>
                 );
               })}

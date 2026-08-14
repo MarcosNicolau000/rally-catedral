@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+
 import { criarMissaoAction, desativarMissaoAction } from './actions';
+import { ConfirmDialog } from '@/presentation/components/ConfirmDialog';
 
 interface MissaoItem {
   id: string;
@@ -21,6 +23,7 @@ export default function AdminMissoesPage() {
   const [pontosBase, setPontosBase] = useState(10);
   const [erro, setErro] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(false);
+  const [missaoParaDesativar, setMissaoParaDesativar] = useState<MissaoItem | null>(null);
 
   async function carregarMissoes() {
     const res = await fetch('/api/missoes');
@@ -55,13 +58,15 @@ export default function AdminMissoesPage() {
     setCarregando(false);
   }
 
-  async function handleDesativar(id: string) {
-    if (confirm('Deseja desativar esta missão? Ela não aparecerá mais para novos lançamentos, mas o histórico de pontos já computados será mantido.')) {
-      const res = await desativarMissaoAction(id);
-      if (res?.error) alert(res.error);
-      else carregarMissoes();
-    }
+  async function handleConfirmarDesativacao() {
+    if (!missaoParaDesativar) return;
+
+    const res = await desativarMissaoAction(missaoParaDesativar.id);
+    if (res?.error) alert(res.error);
+    else carregarMissoes();
+    setMissaoParaDesativar(null);
   }
+
 
   return (
     <div>
@@ -193,7 +198,7 @@ export default function AdminMissoesPage() {
                     {item.ativa && (
                       <button
                         type="button"
-                        onClick={() => handleDesativar(item.id)}
+                        onClick={() => setMissaoParaDesativar(item)}
                         className="btn btn-secondary"
                         style={{ padding: '0.35rem 0.65rem', fontSize: '0.75rem' }}
                       >
@@ -215,6 +220,16 @@ export default function AdminMissoesPage() {
           </table>
         </div>
       </div>
+
+      <ConfirmDialog
+        isOpen={!!missaoParaDesativar}
+        titulo="Desativar Missão Pontuável"
+        mensagem={`Tem certeza que deseja desativar a missão "${missaoParaDesativar?.nome}"? Ela deixará de aparecer para novos lançamentos de líderes, mas a pontuação histórica já acumulada continuará preservada no placar.`}
+        labelConfirmar="Desativar Missão"
+        onConfirm={handleConfirmarDesativacao}
+        onCancel={() => setMissaoParaDesativar(null)}
+      />
     </div>
   );
 }
+

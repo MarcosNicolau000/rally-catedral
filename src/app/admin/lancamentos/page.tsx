@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { removerLancamentoAction, ajustarPontuacaoManualAction } from './actions';
+import { ConfirmDialog } from '@/presentation/components/ConfirmDialog';
+
 
 interface LancamentoItem {
   id: string;
@@ -29,6 +31,9 @@ export default function AdminLancamentosPage() {
   const [tribos, setTribos] = useState<TriboItem[]>([]);
   const [aux, setAux] = useState<AuxData>({ tribosMap: {}, missoesMap: {} });
   const [carregando, setCarregando] = useState(true);
+
+  // Modal de Exclusão
+  const [lancamentoParaRemover, setLancamentoParaRemover] = useState<LancamentoItem | null>(null);
 
   // Estado do formulário de ajuste manual
   const [triboId, setTriboId] = useState('');
@@ -70,12 +75,12 @@ export default function AdminLancamentosPage() {
     carregarDados();
   }, []);
 
-  async function handleRemover(id: string) {
-    if (confirm('Deseja remover este lançamento pontual? O registro sofrerá soft delete e os pontos serão recalculados.')) {
-      const res = await removerLancamentoAction(id);
-      if (res?.error) alert(res.error);
-      else carregarDados();
-    }
+  async function handleConfirmarRemocao() {
+    if (!lancamentoParaRemover) return;
+    const res = await removerLancamentoAction(lancamentoParaRemover.id);
+    if (res?.error) alert(res.error);
+    else carregarDados();
+    setLancamentoParaRemover(null);
   }
 
   async function handleAjustar(e: React.FormEvent) {
@@ -207,8 +212,9 @@ export default function AdminLancamentosPage() {
                       {new Date(item.criado_em).toLocaleString('pt-BR')}
                     </td>
                     <td style={{ fontWeight: 600 }}>
-                      {aux.tribosMap[item.tribo_id] || item.tribo_id}
+                      {aux.tribosMap[item.tribo_id] || (item.tribo_id ? `Tribo Removida (${item.tribo_id.substring(0, 8)}...)` : 'Desconhecida')}
                     </td>
+
                     <td>
                       {item.origem === 'bonus_confronto' ? (
                         <span className="badge badge-gold">🏆 Bônus de Confronto</span>
@@ -240,7 +246,7 @@ export default function AdminLancamentosPage() {
                     <td style={{ textAlign: 'right' }}>
                       <button
                         type="button"
-                        onClick={() => handleRemover(item.id)}
+                        onClick={() => setLancamentoParaRemover(item)}
                         className="btn btn-danger"
                         style={{ padding: '0.35rem 0.65rem', fontSize: '0.75rem' }}
                       >
@@ -262,6 +268,16 @@ export default function AdminLancamentosPage() {
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        isOpen={!!lancamentoParaRemover}
+        titulo="Remover Lançamento (Soft Delete)"
+        mensagem="Tem certeza que deseja remover este lançamento? O registro sofrerá soft delete e a pontuação agregada da tribo será recalculada automaticamente."
+        labelConfirmar="Remover Lançamento"
+        onConfirm={handleConfirmarRemocao}
+        onCancel={() => setLancamentoParaRemover(null)}
+      />
     </div>
   );
 }
+

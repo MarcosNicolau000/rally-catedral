@@ -18,17 +18,35 @@ export class CriarTriboUseCase {
       return failure(new DomainError('NACAO_OBRIGATORIA', 'A nação é obrigatória para criar uma tribo.'));
     }
 
-    // Validando que o nome não está vazio
+    // Validando que o nome não está vazio e não excede 100 caracteres
     if (!dados.nome || dados.nome.trim().length === 0) {
       return failure(new DomainError('NOME_OBRIGATORIO', 'O nome da tribo é obrigatório.'));
+    }
+
+    if (dados.nome.trim().length > 100) {
+      return failure(new DomainError('NOME_MUITO_LONGO', 'O nome da tribo não pode ter mais de 100 caracteres.'));
+    }
+
+
+    const nomeLimpo = dados.nome.trim();
+
+    // Verificando se já existe uma tribo cadastrada com este nome na mesma nação
+    const tribosExistentes = await this.triboRepo.listarPorNacao(dados.nacao_id);
+    const jaExiste = tribosExistentes.some(
+      (t) => t.nome.trim().toLowerCase() === nomeLimpo.toLowerCase()
+    );
+
+    if (jaExiste) {
+      return failure(new DomainError('TRIBO_DUPLICADA', 'Já existe uma tribo cadastrada com este nome nesta nação.'));
     }
 
     // Criando a tribo no repositório
     const tribo = await this.triboRepo.criar({
       nacao_id: dados.nacao_id,
-      nome: dados.nome.trim(),
+      nome: nomeLimpo,
     });
 
     return success(tribo);
   }
 }
+

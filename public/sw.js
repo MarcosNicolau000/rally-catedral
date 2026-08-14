@@ -37,10 +37,15 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Ignora requisições POST/PUT/DELETE e requisições para a API Supabase (exigem conexão)
-  if (event.request.method !== 'GET' || event.request.url.includes('/api/')) {
+  // Ignora requisições POST/PUT/DELETE, rotas de API internas (/api/) e chamadas diretas ao Supabase
+  if (
+    event.request.method !== 'GET' ||
+    event.request.url.includes('/api/') ||
+    event.request.url.includes('supabase.co')
+  ) {
     return;
   }
+
 
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {

@@ -31,13 +31,14 @@ export async function middleware(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname;
 
-  // Permite acesso livre para rotas públicas e arquivos estáticos
-  if (
+  // Permite acesso livre apenas para ranking público, login, api de configuracao e ativos estáticos
+  const isRotaPublica =
     pathname === '/ranking' ||
     pathname.startsWith('/login') ||
-    pathname.startsWith('/api') ||
-    pathname.includes('.')
-  ) {
+    pathname === '/api/configuracao' ||
+    pathname.includes('.');
+
+  if (isRotaPublica) {
     return response;
   }
 

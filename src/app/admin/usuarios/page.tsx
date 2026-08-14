@@ -140,8 +140,8 @@ export default function AdminUsuariosPage() {
                 className="input-field"
                 value={senha}
                 onChange={(e) => setSenha(e.target.value)}
-                placeholder="Mínimo 6 caracteres"
-                minLength={6}
+                placeholder="Mínimo 8 caracteres"
+                minLength={8}
                 required
               />
             </div>
@@ -165,25 +165,39 @@ export default function AdminUsuariosPage() {
             {papel === 'lider_tribo' && (
               <div className="form-group" style={{ marginBottom: 0 }}>
                 <label className="form-label">Tribo Vinculada</label>
-                <select
-                  className="input-field"
-                  value={triboId}
-                  onChange={(e) => setTriboId(e.target.value)}
-                  required
-                >
-                  {tribos.map((t) => (
-                    <option key={t.id} value={t.id} style={{ background: 'var(--bg-card-solid)' }}>
-                      {t.nome}
+                {tribos.length === 0 ? (
+                  <div style={{ fontSize: '0.85rem', color: '#f87171', marginTop: '0.4rem' }}>
+                    ⚠️ Nenhuma tribo cadastrada. Acesse <strong>Admin &gt; Tribos</strong> para cadastrar antes de criar líderes.
+                  </div>
+                ) : (
+                  <select
+                    className="input-field"
+                    value={triboId}
+                    onChange={(e) => setTriboId(e.target.value)}
+                    required
+                  >
+                    <option value="" style={{ background: 'var(--bg-card-solid)' }}>
+                      Selecione uma tribo...
                     </option>
-                  ))}
-                </select>
+                    {tribos.map((t) => (
+                      <option key={t.id} value={t.id} style={{ background: 'var(--bg-card-solid)' }}>
+                        {t.nome}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
             )}
           </div>
 
-          <button type="submit" disabled={carregando} className="btn btn-primary">
+          <button
+            type="submit"
+            disabled={carregando || (papel === 'lider_tribo' && !triboId)}
+            className="btn btn-primary"
+          >
             {carregando ? 'Cadastrando...' : 'Cadastrar Usuário'}
           </button>
+
         </form>
       </div>
 

@@ -30,8 +30,13 @@ export default function RootLayout({
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
       <body>
+        <a href="#main-content" className="skip-link">
+          Ir para o conteúdo principal
+        </a>
         <OfflineBanner />
-        {children}
+        <div id="main-content">{children}</div>
+
+
         {/* Registro do Service Worker no client-side */}
         <script
           dangerouslySetInnerHTML={{
