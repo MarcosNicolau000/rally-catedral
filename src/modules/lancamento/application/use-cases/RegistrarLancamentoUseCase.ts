@@ -53,7 +53,21 @@ export class RegistrarLancamentoUseCase {
         // Não cria lançamento, retorna sucesso com null
         return success(null);
       }
+
+      // Prevenção de duplicidade: checa se a tribo já realizou esta missão no dia de hoje
+      const lancamentosTribo = await this.lancamentoRepo.listarPorTribo(dados.tribo_id);
+      const hojeStr = new Date().toISOString().split('T')[0];
+      const jaRegistradaHoje = lancamentosTribo.some(
+        (l) => l.missao_id === missao.id && l.criado_em.startsWith(hojeStr)
+      );
+
+      if (jaRegistradaHoje) {
+        return failure(
+          new DomainError('MISSAO_JA_REGISTRADA_HOJE', 'Esta missão booleana já foi registrada para a sua tribo hoje.')
+        );
+      }
     }
+
 
     // 5. Calcular pontuação
     const quantidade = missao.tipo === 'contagem' ? (dados.quantidade ?? 1) : 1;

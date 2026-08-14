@@ -63,7 +63,7 @@ export class SupabaseConfrontoRepository implements ConfrontoRepository {
     return data ?? [];
   }
 
-  async finalizar(confrontoId: string, vencedorId: string): Promise<void> {
+  async finalizar(confrontoId: string, vencedorId: string | null): Promise<void> {
     const { error } = await this.supabase
       .from('confronto')
       .update({
@@ -74,6 +74,7 @@ export class SupabaseConfrontoRepository implements ConfrontoRepository {
 
     if (error) throw error;
   }
+
 
   async vincularMissoesExclusivas(confrontoId: string, missoesIds: string[]): Promise<void> {
     const inserts = missoesIds.map((missaoId) => ({
@@ -104,14 +105,17 @@ export class SupabaseConfrontoRepository implements ConfrontoRepository {
 
   // Soma dos lançamentos normais (não removidos) de uma tribo no período do confronto
   async calcularPontosTriboPeriodo(triboId: string, inicio: string, fim: string): Promise<number> {
+    const inicioIso = inicio.includes('T') ? inicio : `${inicio}T00:00:00.000Z`;
+    const fimIso = fim.includes('T') ? fim : `${fim}T23:59:59.999Z`;
+
     const { data, error } = await this.supabase
       .from('lancamento')
       .select('pontos_calculados')
       .eq('tribo_id', triboId)
       .eq('removido', false)
       .eq('origem', 'missao')
-      .gte('criado_em', inicio)
-      .lte('criado_em', `${fim}T23:59:59.999Z`);
+      .gte('criado_em', inicioIso)
+      .lte('criado_em', fimIso);
 
     if (error) throw error;
     // Somatória manual dos pontos calculados no período
@@ -129,6 +133,9 @@ export class SupabaseConfrontoRepository implements ConfrontoRepository {
     if (erroTribos) throw erroTribos;
     if (!tribos || tribos.length === 0) return 0;
 
+    const inicioIso = inicio.includes('T') ? inicio : `${inicio}T00:00:00.000Z`;
+    const fimIso = fim.includes('T') ? fim : `${fim}T23:59:59.999Z`;
+
     // 2. Somar pontos de cada tribo no período
     const triboIds = tribos.map((t) => t.id);
     const { data, error } = await this.supabase
@@ -137,12 +144,13 @@ export class SupabaseConfrontoRepository implements ConfrontoRepository {
       .in('tribo_id', triboIds)
       .eq('removido', false)
       .eq('origem', 'missao')
-      .gte('criado_em', inicio)
-      .lte('criado_em', `${fim}T23:59:59.999Z`);
+      .gte('criado_em', inicioIso)
+      .lte('criado_em', fimIso);
 
     if (error) throw error;
     return (data ?? []).reduce((acc, row) => acc + (row.pontos_calculados || 0), 0);
   }
+
 
   // =====================================================
   // Cálculo de pontuação por missões exclusivas
@@ -198,7 +206,18 @@ export class SupabaseConfrontoRepository implements ConfrontoRepository {
   // Buscar primeira tribo de uma nação (bônus nível nação)
   // =====================================================
 
-  // Retorna o ID da primeira tribo de uma nação (para vincular bônus de confronto)
+  // Retorna os IDs de todas as tribos de uma nação (para distribuição igualitária do bônus)
+  async buscarTribosNacao(nacaoId: string): Promise<string[]> {
+    const { data, error } = await this.supabase
+      .from('tribo')
+      .select('id')
+      .eq('nacao_id', nacaoId);
+
+    if (error) throw error;
+    return data?.map((t) => t.id) ?? [];
+  }
+
+  // Retorna o ID da primeira tribo de uma nação (para vincular bônus de confronto se necessário)
   async buscarPrimeiraTriboNacao(nacaoId: string): Promise<string | null> {
     const { data, error } = await this.supabase
       .from('tribo')
@@ -212,3 +231,4 @@ export class SupabaseConfrontoRepository implements ConfrontoRepository {
     return data?.id ?? null;
   }
 }
+

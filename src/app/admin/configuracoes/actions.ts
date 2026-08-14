@@ -2,16 +2,20 @@
 
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/shared/infrastructure/supabase/server';
-import { createAdminClient } from '@/shared/infrastructure/supabase/admin';
 import { makeAppServices } from '@/shared/infrastructure/factories';
+import { exigirAdmin } from '@/shared/infrastructure/security/authGuard';
 
 export async function alternarExibicaoPublicaAction(ativa: boolean) {
+  // 1. Validar se o usuário logado é Administrador
+  const authCheck = await exigirAdmin();
+  if (!authCheck.ok) {
+    return { error: authCheck.error.message };
+  }
+
+  const user = authCheck.value;
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) return { error: 'Usuário não autenticado.' };
-
   const services = makeAppServices(supabase);
+
   const res = await services.configuracao.alternarPublico.execute(ativa, user.id);
 
   if (!res.ok) {
@@ -24,11 +28,14 @@ export async function alternarExibicaoPublicaAction(ativa: boolean) {
 }
 
 export async function zerarPontuacoesAction() {
+  // 1. Validar se o usuário logado é Administrador
+  const authCheck = await exigirAdmin();
+  if (!authCheck.ok) {
+    return { error: authCheck.error.message };
+  }
+
+  const user = authCheck.value;
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) return { error: 'Usuário não autenticado.' };
-
   const services = makeAppServices(supabase);
 
   // Executa use case de zerar pontuações (grava snapshot e executa soft delete)
@@ -43,3 +50,4 @@ export async function zerarPontuacoesAction() {
   revalidatePath('/ranking');
   return { success: true, snapshotId: res.value.snapshotId, totalZerados: res.value.totalZerados };
 }
+

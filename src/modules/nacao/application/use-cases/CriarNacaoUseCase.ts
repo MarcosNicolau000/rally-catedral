@@ -15,16 +15,34 @@ export class CriarNacaoUseCase {
   constructor(private readonly nacaoRepo: NacaoRepository) {}
 
   async execute(dados: CriarNacaoDTO): Promise<Result<Nacao, DomainError>> {
-    // Validando que o nome não está vazio
+    // Validando que o nome não está vazio e não excede 100 caracteres
     if (!dados.nome || dados.nome.trim().length === 0) {
       return failure(new DomainError('NOME_OBRIGATORIO', 'O nome da nação é obrigatório.'));
     }
 
+    if (dados.nome.trim().length > 100) {
+      return failure(new DomainError('NOME_MUITO_LONGO', 'O nome da nação não pode ter mais de 100 caracteres.'));
+    }
+
+
+    const nomeLimpo = dados.nome.trim();
+
+    // Verificando se já existe uma nação cadastrada com este nome (case-insensitive)
+    const nacoesExistentes = await this.nacaoRepo.listarTodas();
+    const jaExiste = nacoesExistentes.some(
+      (n) => n.nome.trim().toLowerCase() === nomeLimpo.toLowerCase()
+    );
+
+    if (jaExiste) {
+      return failure(new DomainError('NACAO_DUPLICADA', 'Já existe uma nação cadastrada com este nome.'));
+    }
+
     // Criando a nação no repositório
     const nacao = await this.nacaoRepo.criar({
-      nome: dados.nome.trim(),
+      nome: nomeLimpo,
     });
 
     return success(nacao);
   }
 }
+

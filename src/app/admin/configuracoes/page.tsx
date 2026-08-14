@@ -8,6 +8,8 @@ export default function AdminConfiguracoesPage() {
   const [exibicaoPublica, setExibicaoPublica] = useState(false);
   const [carregandoConfig, setCarregandoConfig] = useState(true);
 
+  const [salvandoConfig, setSalvandoConfig] = useState(false);
+
   // State do Modal de Zerar
   const [modalZerarAberto, setModalZerarAberto] = useState(false);
   const [processandoZerar, setProcessandoZerar] = useState(false);
@@ -28,13 +30,16 @@ export default function AdminConfiguracoesPage() {
   }, []);
 
   async function handleTogglePublico(novoStatus: boolean) {
+    setSalvandoConfig(true);
     setExibicaoPublica(novoStatus);
     const res = await alternarExibicaoPublicaAction(novoStatus);
     if (res?.error) {
       alert(res.error);
       setExibicaoPublica(!novoStatus);
     }
+    setSalvandoConfig(false);
   }
+
 
   async function handleZerarPontuacoes() {
     setProcessandoZerar(true);
@@ -89,15 +94,17 @@ export default function AdminConfiguracoesPage() {
           <p style={{ color: 'var(--text-muted)' }}>Carregando preferência...</p>
         ) : (
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', fontSize: '1rem', fontWeight: 600 }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: salvandoConfig ? 'not-allowed' : 'pointer', fontSize: '1rem', fontWeight: 600 }}>
               <input
                 type="checkbox"
                 checked={exibicaoPublica}
+                disabled={salvandoConfig}
                 onChange={(e) => handleTogglePublico(e.target.checked)}
                 style={{ width: '20px', height: '20px' }}
               />
               {exibicaoPublica ? ' Habilitado (Público pode ver resultados)' : ' Desabilitado (Acesso restrito a usuários)'}
             </label>
+
             <span className={`badge ${exibicaoPublica ? 'badge-active' : 'badge-inactive'}`}>
               {exibicaoPublica ? 'ONLINE' : 'OFFLINE'}
             </span>

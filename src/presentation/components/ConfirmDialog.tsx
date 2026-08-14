@@ -7,14 +7,15 @@
 // (ex: "ZERAR PONTUACOES" ou o nome do item) antes de prosseguir.
 // =====================================================
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface ConfirmDialogProps {
   isOpen: boolean;
   titulo: string;
   mensagem: string;
-  textoExigido?: string; // Se fornecido, o usuário PRECISA digitar exatamente este texto para habilitar o botão
+  textoExigido?: string; // Se fornecido, o usuário PRECISA digitar este texto para habilitar o botão
   labelConfirmar?: string;
+  carregando?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -25,14 +26,28 @@ export function ConfirmDialog({
   mensagem,
   textoExigido,
   labelConfirmar = 'Confirmar Exclusão',
+  carregando = false,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
   const [inputVal, setInputVal] = useState('');
 
+  // Fecha o modal ao pressionar a tecla ESC
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape' && isOpen && !carregando) {
+        onCancel();
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, carregando, onCancel]);
+
   if (!isOpen) return null;
 
-  const isConfirmedAllowed = !textoExigido || inputVal.trim() === textoExigido.trim();
+  // Comparação case-insensitive e desconsiderando espaços nas pontas
+  const isConfirmedAllowed =
+    !textoExigido || inputVal.trim().toLowerCase() === textoExigido.trim().toLowerCase();
 
   return (
     <div className="modal-overlay">
@@ -55,31 +70,36 @@ export function ConfirmDialog({
               value={inputVal}
               onChange={(e) => setInputVal(e.target.value)}
               placeholder={textoExigido}
+              disabled={carregando}
               autoFocus
             />
           </div>
         )}
 
         <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
-          <button type="button" onClick={onCancel} className="btn btn-secondary">
+          <button type="button" onClick={onCancel} disabled={carregando} className="btn btn-secondary">
             Cancelar
           </button>
           <button
             type="button"
             onClick={() => {
-              if (isConfirmedAllowed) {
+              if (isConfirmedAllowed && !carregando) {
                 onConfirm();
                 setInputVal('');
               }
             }}
-            disabled={!isConfirmedAllowed}
+            disabled={!isConfirmedAllowed || carregando}
             className="btn btn-danger"
-            style={{ opacity: isConfirmedAllowed ? 1 : 0.4, cursor: isConfirmedAllowed ? 'pointer' : 'not-allowed' }}
+            style={{
+              opacity: isConfirmedAllowed && !carregando ? 1 : 0.4,
+              cursor: isConfirmedAllowed && !carregando ? 'pointer' : 'not-allowed',
+            }}
           >
-            {labelConfirmar}
+            {carregando ? '⏳ Processando...' : labelConfirmar}
           </button>
         </div>
       </div>
     </div>
   );
 }
+

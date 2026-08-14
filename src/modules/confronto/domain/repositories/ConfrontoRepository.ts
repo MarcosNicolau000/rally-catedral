@@ -19,7 +19,7 @@ export interface ConfrontoRepository {
   criar(dados: CriarConfrontoDTO): Promise<Confronto>;
   buscarPorId(id: string): Promise<Confronto | null>;
   listarTodos(): Promise<Confronto[]>;
-  finalizar(confrontoId: string, vencedorId: string): Promise<void>;
+  finalizar(confrontoId: string, vencedorId: string | null): Promise<void>;
 
   // Missões exclusivas
   vincularMissoesExclusivas(confrontoId: string, missoesIds: string[]): Promise<void>;
@@ -37,6 +37,8 @@ export interface ConfrontoRepository {
   // Soma dos lançamentos vinculados às missões exclusivas do confronto para uma nação
   calcularPontosMissoesExclusivasNacao(confrontoId: string, nacaoId: string): Promise<number>;
 
-  // Buscar a primeira tribo de uma nação (para distribuição de bônus em confronto nível nação)
+  // Buscar todas as tribos de uma nação (para distribuição de bônus justa em confronto nível nação)
+  buscarTribosNacao(nacaoId: string): Promise<string[]>;
   buscarPrimeiraTriboNacao(nacaoId: string): Promise<string | null>;
 }
+

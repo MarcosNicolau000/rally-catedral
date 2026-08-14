@@ -4,8 +4,15 @@ import { revalidatePath } from 'next/cache';
 import { createClient } from '@/shared/infrastructure/supabase/server';
 import { makeAppServices } from '@/shared/infrastructure/factories';
 import { PapelUsuario } from '@/modules/usuario/domain/value-objects/PapelUsuario';
+import { exigirAdmin } from '@/shared/infrastructure/security/authGuard';
 
 export async function criarUsuarioAction(formData: FormData) {
+  // 1. Validar se o usuário logado é Administrador
+  const authCheck = await exigirAdmin();
+  if (!authCheck.ok) {
+    return { error: authCheck.error.message };
+  }
+
   const nome = formData.get('nome') as string;
   const email = formData.get('email') as string;
   const senha = formData.get('senha') as string;
@@ -32,6 +39,12 @@ export async function criarUsuarioAction(formData: FormData) {
 }
 
 export async function removerUsuarioAction(id: string) {
+  // 1. Validar se o usuário logado é Administrador
+  const authCheck = await exigirAdmin();
+  if (!authCheck.ok) {
+    return { error: authCheck.error.message };
+  }
+
   const supabase = await createClient();
   const services = makeAppServices(supabase);
 
@@ -45,3 +58,4 @@ export async function removerUsuarioAction(id: string) {
   revalidatePath('/admin/tribos');
   return { success: true };
 }
+

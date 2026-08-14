@@ -19,7 +19,7 @@ import { DomainError } from '@/shared/domain/errors/DomainError';
 const MISSAO_BONUS_SISTEMA_ID = '00000000-0000-0000-0000-000000000001';
 
 export interface FecharConfrontoResult {
-  vencedorId: string;
+  vencedorId: string | null;
   pontosA: number;
   pontosB: number;
   empate: boolean;
@@ -89,44 +89,55 @@ export class FecharConfrontoUseCase {
       }
     }
 
-    // 3. Definir o vencedor (em caso de empate, participante A é favorecido)
+    // 3. Definir o vencedor de forma imparcial (se empate, não há vencedor único)
     const empate = pontosA === pontosB;
-    const vencedorId = pontosA >= pontosB
+    const vencedorId = empate
+      ? null
+      : pontosA > pontosB
       ? confronto.participante_a_id
       : confronto.participante_b_id;
 
-    // 4. Marcar o confronto como finalizado com o vencedor
+    // 4. Marcar o confronto como finalizado (registra o vencedor ou null em caso de empate)
     await this.confrontoRepo.finalizar(confrontoId, vencedorId);
 
-    // 5. Regra 24: Se da_bonus = true, gera lançamento automático de bônus
-    if (confronto.da_bonus && confronto.pontos_bonus && confronto.pontos_bonus > 0) {
-      let triboAlvoId: string;
-
+    // 5. Regra 24: Se da_bonus = true e HOUVER um vencedor definido (sem empate)
+    if (!empate && vencedorId && confronto.da_bonus && confronto.pontos_bonus && confronto.pontos_bonus > 0) {
       if (confronto.nivel === 'tribo') {
         // No nível tribo, o vencedorId já é o tribo_id
-        triboAlvoId = vencedorId;
+        await this.lancamentoRepo.criar({
+          missao_id: MISSAO_BONUS_SISTEMA_ID,
+          tribo_id: vencedorId,
+          quantidade: 1,
+          pontos_calculados: confronto.pontos_bonus,
+          origem: 'bonus_confronto',
+          confronto_id: confronto.id,
+          registrado_por: adminId,
+        });
       } else {
-        // No nível nação, precisamos encontrar uma tribo da nação para vincular o bônus
-        const primeiraTriboId = await this.confrontoRepo.buscarPrimeiraTriboNacao(vencedorId);
-        if (!primeiraTriboId) {
+        // No nível nação, dividir o bônus igualitariamente entre todas as tribos da nação vencedora
+        const triboIds = await this.confrontoRepo.buscarTribosNacao(vencedorId);
+        if (triboIds.length === 0) {
           return failure(new DomainError(
             'NACAO_SEM_TRIBOS',
             'A nação vencedora não possui tribos cadastradas para receber o bônus.'
           ));
         }
-        triboAlvoId = primeiraTriboId;
-      }
 
-      // Criar lançamento de bônus usando a missão de sistema
-      await this.lancamentoRepo.criar({
-        missao_id: MISSAO_BONUS_SISTEMA_ID,
-        tribo_id: triboAlvoId,
-        quantidade: 1,
-        pontos_calculados: confronto.pontos_bonus,
-        origem: 'bonus_confronto',
-        confronto_id: confronto.id,
-        registrado_por: adminId,
-      });
+        const pontosPorTribo = Math.floor(confronto.pontos_bonus / triboIds.length);
+        if (pontosPorTribo > 0) {
+          for (const triboId of triboIds) {
+            await this.lancamentoRepo.criar({
+              missao_id: MISSAO_BONUS_SISTEMA_ID,
+              tribo_id: triboId,
+              quantidade: 1,
+              pontos_calculados: pontosPorTribo,
+              origem: 'bonus_confronto',
+              confronto_id: confronto.id,
+              registrado_por: adminId,
+            });
+          }
+        }
+      }
     }
 
     return success({
@@ -137,3 +148,4 @@ export class FecharConfrontoUseCase {
     });
   }
 }
+

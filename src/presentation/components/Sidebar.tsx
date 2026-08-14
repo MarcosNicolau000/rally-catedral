@@ -1,8 +1,6 @@
 'use client';
 
-// =====================================================
-// Componente: Sidebar (Navegação Principal)
-// =====================================================
+import { useState } from 'react';
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -14,6 +12,7 @@ interface SidebarProps {
 
 export function Sidebar({ papel, onLogout }: SidebarProps) {
   const pathname = usePathname();
+  const [menuAberto, setMenuAberto] = useState(false);
 
   const linksAdmin = [
     { href: '/admin/dashboard', label: '🏆 Dashboard', icon: '📊' },
@@ -43,35 +42,55 @@ export function Sidebar({ papel, onLogout }: SidebarProps) {
       : linksPublicos;
 
   return (
-    <aside className="sidebar">
-      <div className="brand-logo">
-        <span>⚡ RALLY</span>
-      </div>
+    <>
+      {/* Botão de Toggle para Telas Mobile */}
+      <button
+        type="button"
+        className="mobile-nav-toggle"
+        onClick={() => setMenuAberto(!menuAberto)}
+        aria-label="Abrir menu de navegação"
+      >
+        {menuAberto ? '✕' : '☰'}
+      </button>
 
-      <nav style={{ flex: 1 }}>
-        <ul className="nav-list">
-          {navItems.map((item) => {
-            const isActive = pathname.startsWith(item.href);
-            return (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  className={`nav-link ${isActive ? 'active' : ''}`}
-                >
-                  <span>{item.icon}</span>
-                  <span>{item.label}</span>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
-      </nav>
+      <aside className={`sidebar ${menuAberto ? 'mobile-open' : ''}`}>
+        <div className="brand-logo">
+          <span>⚡ RALLY</span>
+        </div>
 
-      {onLogout && (
-        <button onClick={onLogout} className="btn btn-secondary sidebar-logout" style={{ width: '100%' }}>
-          🚪 Sair
-        </button>
-      )}
-    </aside>
+        <nav style={{ flex: 1 }}>
+          <ul className="nav-list">
+            {navItems.map((item) => {
+              const isActive = pathname.startsWith(item.href);
+              return (
+                <li key={item.href}>
+                  <Link
+                    href={item.href}
+                    onClick={() => setMenuAberto(false)}
+                    className={`nav-link ${isActive ? 'active' : ''}`}
+                    aria-label={item.label}
+                  >
+                    <span>{item.icon}</span>
+                    <span>{item.label}</span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </nav>
+
+        {onLogout && papel !== 'visitante' && (
+          <button
+            onClick={onLogout}
+            className="btn btn-secondary sidebar-logout"
+            style={{ width: '100%' }}
+            aria-label="Sair da conta"
+          >
+            🚪 Sair
+          </button>
+        )}
+      </aside>
+    </>
   );
 }
+

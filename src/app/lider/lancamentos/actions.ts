@@ -3,17 +3,21 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/shared/infrastructure/supabase/server';
 import { makeAppServices } from '@/shared/infrastructure/factories';
+import { exigirAutenticado } from '@/shared/infrastructure/security/authGuard';
 
 export async function registrarLancamentoLiderAction(formData: FormData) {
+  // 1. Validar se o usuário está autenticado
+  const authCheck = await exigirAutenticado();
+  if (!authCheck.ok) {
+    return { error: authCheck.error.message };
+  }
+
   const missao_id = formData.get('missao_id') as string;
   const quantidade = parseInt(formData.get('quantidade') as string, 10);
   const valor_booleano = formData.get('valor_booleano') === 'true';
 
+  const user = authCheck.value;
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) return { error: 'Usuário não autenticado.' };
-
   const services = makeAppServices(supabase);
 
   // Obter perfil do líder logado para garantir a tribo_id
@@ -47,3 +51,4 @@ export async function registrarLancamentoLiderAction(formData: FormData) {
 
   return { success: true, mensagem: 'Lançamento registrado com sucesso!' };
 }
+

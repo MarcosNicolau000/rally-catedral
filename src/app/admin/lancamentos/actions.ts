@@ -3,8 +3,15 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/shared/infrastructure/supabase/server';
 import { makeAppServices } from '@/shared/infrastructure/factories';
+import { exigirAdmin } from '@/shared/infrastructure/security/authGuard';
 
 export async function removerLancamentoAction(id: string) {
+  // 1. Validar se o usuário logado é Administrador
+  const authCheck = await exigirAdmin();
+  if (!authCheck.ok) {
+    return { error: authCheck.error.message };
+  }
+
   const supabase = await createClient();
   const services = makeAppServices(supabase);
 
@@ -20,15 +27,18 @@ export async function removerLancamentoAction(id: string) {
 }
 
 export async function ajustarPontuacaoManualAction(formData: FormData) {
+  // 1. Validar se o usuário logado é Administrador
+  const authCheck = await exigirAdmin();
+  if (!authCheck.ok) {
+    return { error: authCheck.error.message };
+  }
+
   const tribo_id = formData.get('tribo_id') as string;
   const pontosRaw = formData.get('pontos') as string;
   const motivo = formData.get('motivo') as string;
 
+  const user = authCheck.value;
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) return { error: 'Usuário não autenticado.' };
-
   const services = makeAppServices(supabase);
 
   const pontos = parseInt(pontosRaw, 10);
@@ -49,3 +59,4 @@ export async function ajustarPontuacaoManualAction(formData: FormData) {
   revalidatePath('/ranking');
   return { success: true };
 }
+

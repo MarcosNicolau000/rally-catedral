@@ -19,19 +19,22 @@ export class CriarUsuarioUseCase {
       return failure(new DomainError('NOME_OBRIGATORIO', 'O nome do usuário é obrigatório.'));
     }
 
-    // Validando email e senha
-    if (!dados.email || !dados.email.includes('@')) {
-      return failure(new DomainError('EMAIL_INVALIDO', 'Email inválido.'));
+    // Validando email com expressão regular estrita
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!dados.email || !emailRegex.test(dados.email.trim())) {
+      return failure(new DomainError('EMAIL_INVALIDO', 'Informe um endereço de email válido (ex: usuario@dominio.com).'));
     }
 
-    if (!dados.senha || dados.senha.length < 6) {
-      return failure(new DomainError('SENHA_CURTA', 'A senha deve ter no mínimo 6 caracteres.'));
+    // Validando política de senha segura (no mínimo 8 caracteres)
+    if (!dados.senha || dados.senha.length < 8) {
+      return failure(new DomainError('SENHA_CURTA', 'A senha deve possuir no mínimo 8 caracteres para maior segurança.'));
     }
 
     // Regra de negócio: líder de tribo OBRIGATORIAMENTE precisa ter tribo_id
     if (dados.papel === 'lider_tribo' && !dados.tribo_id) {
       return failure(new DomainError('TRIBO_OBRIGATORIA_LIDER', 'Um líder de tribo deve ser vinculado a uma tribo.'));
     }
+
 
     try {
       const usuario = await this.usuarioRepo.criar({ ...dados, nome: dados.nome.trim() });

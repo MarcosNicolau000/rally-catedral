@@ -20,9 +20,14 @@ export class CriarConfrontoUseCase {
       return failure(new DomainError('PARTICIPANTES_IGUAIS', 'Os dois participantes do confronto devem ser diferentes.'));
     }
 
+    if (new Date(dados.periodo_fim) < new Date(dados.periodo_inicio)) {
+      return failure(new DomainError('PERIODO_INVALIDO', 'A data de término do confronto não pode ser anterior à data de início.'));
+    }
+
     if (dados.da_bonus && (!dados.pontos_bonus || dados.pontos_bonus <= 0)) {
       return failure(new DomainError('BONUS_INVALIDO', 'Se o confronto dá bônus, os pontos de bônus devem ser maiores que zero.'));
     }
+
 
     if (dados.tipo === 'missoes_exclusivas' && (!dados.missoes_exclusivas_ids || dados.missoes_exclusivas_ids.length === 0)) {
       return failure(new DomainError('MISSOES_EXCLUSIVAS_OBRIGATORIAS', 'Para confrontos com missões exclusivas, selecione ao menos uma missão.'));
